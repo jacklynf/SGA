@@ -37,10 +37,45 @@
 #include <stdbool.h>
 
 #include "shift_register_control.h"
+#include "encoder.h"   
 
 
 
 int main(void) {
+    sei(); //Enable Global Interrupts
+
+    //Rotary Encoder Code Begin
+    DDRC &= ~(ENCODERA + ENCODERB); //Set EncoderA and EncoderB pins as inputs (constants defined in encoder.h)
+    PORTC |= (ENCODERA + ENCODERB); //Enable Pull-Up resistor on EncoderA and EncoderB
+    PCICR |= (1 << PCIE1); //Enable Pin Change interrupts on PORTC
+    //PCMSK1 register will be controled based on when we have selected an item to be edited, and therefore want the rotary encoder to be enabled
+    //(so it isn't triggering interrupts when it isn't being utilized)
+
+    uint8_t encoder_oldState, encoder_newState; //Varibles for rotary encoder state machine
+    uint8_t encoder_changed = 0; //Rotary encoder changed flag
+    uint8_t encoderInput, encoderA, encoderB; //rotary encoder inputs variables
+    
+    //Intialize rotary encoder state machine:
+    encoderInput = PINC;    //Read PINC
+    encoderA = encoderInput & ENCODERA;     //Isolate EncoderA input
+    encoderB = encoderInput & ENCODERB;     //Isolate EncoderB input
+
+    if (!encoderB && !encoderA)         //If encoder input is 00
+	    encoder_oldState = 0;
+    else if (!encoderB && encoderA)     //If encoder input is 01
+	    encoder_oldState = 1;
+    else if (encoderB && !encoderA)     //If encoder input is 10
+	    encoder_oldState = 2;
+    else                                //If encoder input is 11
+	    encoder_oldState = 3;
+
+    encoder_oldState = encoder_newState;
+    //Rotary Encoder Code End
+
+
+
+    //Shift Register Code Begin
+    uint16_t shift_register_outputs = 0x0000; //16 bit varible to hold 16 bits to be loaded into shift register
 
     //Set DDR for Shift Registers (constants defined in shift_register_control.h)
     DDRD |= SERIAL_DATA_OUT;
@@ -49,15 +84,78 @@ int main(void) {
     DDRD |= SHIFT_REG_OE;
 
     PORTD |= SHIFT_REG_OE; //Enable outputs on Shift Registers
+    //Shift Register Code End
 
 
-    uint16_t shift_register_outputs = 0x0000; //16 bit varible to hold 16 bits to be loaded into shift register
+    while (1) {
 
-    toggleOutput(true, GREEN_LED_1, &shift_register_outputs); //Test toggle output function; Set bit corresponding bit for GREEN_LED_1 to '1'
+        //Test Function Calls to test Shift Registers
+        toggleOutput(true, GREEN_LED_1, &shift_register_outputs); //Test toggle output function; Set bit corresponding bit for GREEN_LED_1 to '1'    
+        sendOutput(&shift_register_outputs); //Test send output function
+
+
+        //Rotary Encoder code:
+        //if encoder changed flag is set
+        if(encoder_changed) {
+            encoder_changed = 0;    //reset the flag
+
+            //do other stuff needed (to be added)...
+        }
+
+    }
     
-    sendOutput(&shift_register_outputs); //Test send output function
-
-
     return 0;   /* never reached */
 }
+
+ISR(PCINT1_vect) //Interrupt vector for PORTC
+{
+    //Begin code for Rotary Encoder related Interrupt Handling
+    encoderInput = PINC;    //Read PINC
+    encoderA = encoderInput & ENCODERA;     //Isolate EncoderA input
+    encoderB = encoderInput & ENCODERB;     //Isolate EncoderB input
+    if (encoder_oldState == 0) {
+        if(encoderA){
+            //Clockwise Rotation
+            encoder_newState = 1;
+        }else if(encoderB){
+            //Counter-Clockwise Rotation
+            encoder_newState = 2;
+        }
+	}
+	else if (encoder_oldState == 1) {
+        if(encoderB){
+            //Clockwise Rotation
+            encoder_newState = 3;
+        }else if(!encoderA){
+            //Counter-Clockwise Rotation
+            encoder_newState = 0;
+        }
+	}
+	else if (encoder_oldState == 2) {
+        if(!encoderB){
+            //Clockwise Rotation
+            encoder_newState = 0;
+        }else if(encoderA){
+            //Counter-Clockwise Rotation
+            encoder_newState = 3;
+        }
+	}
+	else {   // old_state = 3
+        if(!encoderA){
+            //Clockwise Rotation
+            encoder_newState = 2;
+        }else if(!encoderB){
+            //Counter-Clockwise Rotation
+            encoder_oldState = 1;
+        }
+	}
+
+    //If state has changed, change oldstate to newstate and set changed flag to report that the encoder was turned.
+	if (encoder_newState != encoder_oldState) {
+	    encoder_changed = 1;
+	    encoder_oldState = encoder_newState;
+	}
+    //End code for Rotary Encoder related Interrupt Handling
+
+} 
 
