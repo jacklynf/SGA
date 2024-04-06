@@ -39,7 +39,9 @@
 #include "shift_register_control.h"
 #include "encoder.h"   
 
-
+uint8_t encoder_oldState, encoder_newState; //Varibles for rotary encoder state machine
+uint8_t encoder_changed; //Rotary encoder changed flag
+uint8_t encoderInput, encoderA, encoderB; //rotary encoder inputs variables
 
 int main(void) {
     sei(); //Enable Global Interrupts
@@ -50,11 +52,9 @@ int main(void) {
     PCICR |= (1 << PCIE1); //Enable Pin Change interrupts on PORTC
     //PCMSK1 register will be controled based on when we have selected an item to be edited, and therefore want the rotary encoder to be enabled
     //(so it isn't triggering interrupts when it isn't being utilized)
-
-    uint8_t encoder_oldState, encoder_newState; //Varibles for rotary encoder state machine
-    uint8_t encoder_changed = 0; //Rotary encoder changed flag
-    uint8_t encoderInput, encoderA, encoderB; //rotary encoder inputs variables
     
+    encoder_changed = 0; //Set encoder changed flag to 0
+
     //Intialize rotary encoder state machine:
     encoderInput = PINC;    //Read PINC
     encoderA = encoderInput & ENCODERA;     //Isolate EncoderA input
