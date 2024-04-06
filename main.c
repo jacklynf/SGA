@@ -35,6 +35,8 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <stdbool.h>
+#include <avr/interrupt.h>
+
 
 #include "shift_register_control.h"
 #include "encoder.h"   
