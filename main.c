@@ -46,8 +46,6 @@ volatile uint8_t encoder_oldState, encoder_newState; //Varibles for rotary encod
 volatile uint8_t encoder_changed; //Rotary encoder changed flag
 volatile uint8_t encoderInput, encoderA, encoderB; //rotary encoder inputs variables
 
-
-
 int main(void) {
     //Rotary Encoder Code Begin
     DDRC &= ~(ENCODERA + ENCODERB); //Set EncoderA and EncoderB pins as inputs (constants defined in encoder.h)
@@ -100,8 +98,7 @@ int main(void) {
     DDRD |= STORE_CLK;
     DDRB |= SHIFT_REG_OE; //Enable outputs on Shift Registers
 
-    PORTB &= ~SHIFT_REG_OE; // Enable shift registers (active low)  
-    uint8_t shift_register_outputs = 0x0000;
+    PORTB &= ~SHIFT_REG_OE; // Enable shift registers (active low)
     // End shift register init
 
     while (1){
@@ -121,7 +118,6 @@ int main(void) {
     }
     return 0;   /* never reached */
 }
-
 
 ISR(PCINT1_vect) //Interrupt vector for PORTC
 {

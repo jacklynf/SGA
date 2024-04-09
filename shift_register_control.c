@@ -24,11 +24,11 @@ void sendOutput(enum REGOUT led_select1, enum REGOUT led_select2,
     PORTD &= ~STORE_CLK;
 }
 
-void toggleOutput (_Bool state, uint16_t output, uint16_t* outputs){
-    if(state){
-        *outputs |= output;
-    }else{
-        *outputs &= ~output;
-    }
-}
+// void toggleOutput (_Bool state, uint16_t output, uint16_t* outputs){
+//     if(state){
+//         *outputs |= output;
+//     }else{
+//         *outputs &= ~output;
+//     }
+// }
 

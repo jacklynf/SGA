@@ -40,4 +40,4 @@ It's sole functionality is to change the appropriate bit in the 'outputs' accord
 as described by the first two inputs.
 The purpose of incorporating this function is to make code readability easier.
 */
-void toggleOutput (_Bool state, uint16_t output, uint16_t* outputs);
+// void toggleOutput (_Bool state, uint16_t output, uint16_t* outputs);

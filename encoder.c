@@ -8,3 +8,4 @@ void encoderEnable(){
 void encoderDisable(){
     PCMSK1 &= ~((1 << ENCODERA) + (1 << ENCODERB));
 }
+
