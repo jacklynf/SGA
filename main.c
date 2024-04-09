@@ -35,29 +35,183 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <stdbool.h>
+#include <avr/interrupt.h>
 
 #include "shift_register_control.h"
+#include "encoder.h"
+
+volatile enum REGOUT led_select1 = GREEN1, led_select2 = GREEN2;  
+volatile _Bool water_on = false, fertilizer_on = true;
+volatile uint8_t encoder_oldState, encoder_newState; //Varibles for rotary encoder state machine
+volatile uint8_t encoder_changed; //Rotary encoder changed flag
+volatile uint8_t encoderInput, encoderA, encoderB; //rotary encoder inputs variables
 
 
 
 int main(void) {
+    //Rotary Encoder Code Begin
+    DDRC &= ~(ENCODERA + ENCODERB); //Set EncoderA and EncoderB pins as inputs (constants defined in encoder.h)
+    PORTC |= (ENCODERA + ENCODERB); //Enable Pull-Up resistor on EncoderA and EncoderB
+    PCICR |= (1 << PCIE1); //Enable Pin Change interrupts on PORTC
+    PCMSK1 |= (1 << PCINT10)|(1 << PCINT11); // set mask bits
+    //PCMSK1 register will be controled based on when we have selected an item to be edited, and therefore want the rotary encoder to be enabled
+    //(so it isn't triggering interrupts when it isn't being utilized)
+    
+    encoder_changed = 0; //Set encoder changed flag to 0
 
+    //Intialize rotary encoder state machine:
+    encoderInput = PINC & (ENCODERA|ENCODERB);    //Read PINC
+    encoderA = encoderInput & ENCODERA;     //Isolate EncoderA input
+    encoderB = encoderInput & ENCODERB;     //Isolate EncoderB input
+
+    if (!encoderB && !encoderA)         //If encoder input is 00
+	    encoder_oldState = 0;
+    else if (!encoderB && encoderA)     //If encoder input is 01
+	    encoder_oldState = 1;
+    else if (encoderB && !encoderA)     //If encoder input is 10
+	    encoder_oldState = 2;
+    else                                //If encoder input is 11
+	    encoder_oldState = 3;
+
+    encoder_oldState = encoder_newState;
+    //Rotary Encoder Code End
+
+
+    // Set up timer to check water & fertilizer levels
+            /*
+            To calculate timer value:
+                freq/prescalar = 9830400Hz/1024 = 9600Hz
+                tick time = 1/9600Hz = 104.2us
+                16 bit timer = 65536
+                To calculate upper timer value, input desired wait time, t: 65536 - (t/104.2us)
+                TCNT1 = 65536 - (t/(1/9600)) 
+                Ex: for t = 200ms, TCNT1 = 65536 - (0.2 / (1/9600)) = 63616
+            */
+    TCNT1 = 63616; // 200ms for 9.83MHz clock
+    TCCR1A = 0x00; // Set normal counter mode
+    TCCR1B = (1<<CS10) | (1<<CS12); // Set 1024 pre-scaler
+    TIMSK1 = (1 << TOIE1); // Set overflow interrupt enable bit
+    // End of timer init
+
+    // Shift register init
     //Set DDR for Shift Registers (constants defined in shift_register_control.h)
     DDRD |= SERIAL_DATA_OUT;
     DDRD |= SERIAL_CLK;
     DDRD |= STORE_CLK;
-    DDRD |= SHIFT_REG_OE;
+    DDRB |= SHIFT_REG_OE; //Enable outputs on Shift Registers
 
-    PORTD |= SHIFT_REG_OE; //Enable outputs on Shift Registers
+    PORTB &= ~SHIFT_REG_OE; // Enable shift registers (active low)  
+    uint8_t shift_register_outputs = 0x0000;
+    // End shift register init
+
+    while (1){
+        sei(); //Enable Global Interrupts
+        // sendOutput(led_select1, led_select2, water_on, fertilizer_on);
 
 
-    uint16_t shift_register_outputs = 0x0000; //16 bit varible to hold 16 bits to be loaded into shift register
+        //Rotary Encoder code:
+        //if encoder changed flag is set
+        if(encoder_changed) {
+            encoder_changed = 0;    //reset the flag
+            sendOutput(led_select1, led_select2, water_on, fertilizer_on); // this won't stay here, just for testing encoder & shift reg
+            //do other stuff needed (to be added)...
 
-    toggleOutput(true, GREEN_LED_1, &shift_register_outputs); //Test toggle output function; Set bit corresponding bit for GREEN_LED_1 to '1'
-    
-    sendOutput(&shift_register_outputs); //Test send output function
+        }
 
-
+    }
     return 0;   /* never reached */
 }
 
+
+ISR(PCINT1_vect) //Interrupt vector for PORTC
+{
+    //Begin code for Rotary Encoder related Interrupt Handling
+    encoderInput = PINC & (ENCODERA|ENCODERB);    //Read inputs simultaneously
+    encoderA = encoderInput & ENCODERA;     //Isolate EncoderA input
+    encoderB = encoderInput & ENCODERB;     //Isolate EncoderB input
+    if (encoder_oldState == 0) {
+        if(encoderA){
+            //Clockwise Rotation
+            encoder_newState = 1;
+        }else if(encoderB){
+            //Counter-Clockwise Rotation
+            encoder_newState = 2;
+        }
+	}
+	else if (encoder_oldState == 1) {
+        if(encoderB){
+            //Clockwise Rotation
+            encoder_newState = 3;
+        }else if(!encoderA){
+            //Counter-Clockwise Rotation
+            encoder_newState = 0;
+        }
+	}
+	else if (encoder_oldState == 2) {
+        if(!encoderB){
+            //Clockwise Rotation
+            encoder_newState = 0;
+        }else if(encoderA){
+            //Counter-Clockwise Rotation
+            encoder_newState = 3;
+        }
+	}
+	else {   // old_state = 3
+        if(!encoderA){
+            //Clockwise Rotation
+            encoder_newState = 2;
+        }else if(!encoderB){
+            //Counter-Clockwise Rotation
+            encoder_oldState = 1;
+        }
+	}
+
+    //If state has changed, change oldstate to newstate and set changed flag to report that the encoder was turned.
+	if (encoder_newState != encoder_oldState) {
+	    encoder_changed = 1;
+	    encoder_oldState = encoder_newState;
+	}
+    //End code for Rotary Encoder related Interrupt Handling
+
+} 
+
+ISR (TIMER1_OVF_vect) {
+    // Dummy code for now, just selecting LEDs based on rotary input
+    // This timer will eventually do:
+        // Check water levels & fertilizer levels
+        // Update water level & fertilizer level variables
+        // Check humidity in air & moisture in soil
+        // Update humidity & moisture variables
+        // Check NPK in soil
+        // Update NPK variable(s)
+        // Check sunlight
+        // update sun variable
+    // After returning from this timer, the main function will loop over:
+        // calculateSoilNeeds() to determine if water or fertilizer is needed, updating water_on and fertilizer_on as needed
+        // calculateSunNeeds() to determine if grow lamp is needed
+        // sendOutput() to update LEDs, turn water/fertilizer on
+        // growLamp() to turn on/off grow lamp
+    // Possibly different values can be used for timer. Maybe check water levels every 1 minute and check sun every 30 seconds? etc.
+
+    if (encoder_newState == 1){
+        led_select1 = GREEN1;
+        led_select2 = GREEN2;
+    }
+    else if(encoder_newState == 2){
+        led_select1 = YELLOW1;
+        led_select2 = YELLOW2;
+    }
+    else if(encoder_newState == 3){
+        led_select1 = RED1;
+        led_select2 = RED2;
+    }
+    // else{
+    //     led_select1 = led_select1 + 1;
+    //     if (led_select1 > GREEN1)
+    //         led_select1=RED1;
+    //     led_select2 = led_select2 + 1;
+    //     if (led_select2 > GREEN2)
+    //         led_select2=RED2;
+    //     }
+    TCNT1 = 63616; // 200 ms for 9.83MHz clock
+}

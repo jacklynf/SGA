@@ -4,21 +4,33 @@
 #define SHIFT_REG_OE    (1 << PB0) //Output Pin for Output Enable (Active Low). Pushing HIGH disables all the outputs.
 
 #define GREEN_LED_1    (1 << 15) //Green_LED_1 is connected to Bit 15 of the shift registers
-#define YELLOW_LED_1   (1 << 14) //Yellow_LED_1 is connected to Bit 14 of the shift registers
-#define RED_LED_1      (1 << 13) //Red_LED_1 is connected to Bit 13 of the shift registers
-#define GREEN_LED_2    (1 << 12) //Green_LED_2 is connected to Bit 12 of the shift registers
-#define YELLOW_LED_2   (1 << 11) //Yellow_LED_2 is connected to Bit 11 of the shift registers
-#define RED_LED_2      (1 << 10) //Red_LED_2 is connected to Bit 10 of the shift registers
-#define PUMP_1         (1 << 9) //Pump_1 is connected to Bit 9 of the shift registers
-#define PUMP_2         (1 << 8) //Pump_2 is connected to Bit 8 of the shift registers
+#define YELLOW_LED_1   (1 << 1) //Yellow_LED_1 is connected to Bit 14 of the shift registers
+#define RED_LED_1      (1 << 2) //Red_LED_1 is connected to Bit 13 of the shift registers
+#define GREEN_LED_2    (1 << 3) //Green_LED_2 is connected to Bit 12 of the shift registers
+#define YELLOW_LED_2   (1 << 4) //Yellow_LED_2 is connected to Bit 11 of the shift registers
+#define RED_LED_2      (1 << 5) //Red_LED_2 is connected to Bit 10 of the shift registers
+#define PUMP_1         (1 << 6) //Pump_1 is connected to Bit 9 of the shift registers
+#define PUMP_2         (1 << 7) //Pump_2 is connected to Bit 8 of the shift registers
 //The remaining 8 bits of the shift registers are unused at this moment.
+
+enum REGOUT {
+    WATER,
+    FERTILIZER,
+    RED2,
+    YELLOW2,
+    GREEN2,
+    RED1,
+    YELLOW1,
+    GREEN1
+};
 
 /*
 The sendOutput function is the function that handles taking the 16-bit "outputs" varible,
 representing the 16 bits we want to push into the shift registers,
 and sending those bits 1 by 1 into the shift registers with the appropriate clock pulses at the correct time.
 */
-void sendOutput(uint16_t* outputs);\
+void sendOutput(enum REGOUT, enum REGOUT, _Bool, _Bool);
+
 
 /*
 The toggleOutput function takes in a desired output ex. (GREEN_LED_1),
