@@ -13,6 +13,7 @@
 #define PUMP_2         (1 << 7) //Pump_2 is connected to Bit 8 of the shift registers
 //The remaining 8 bits of the shift registers are unused at this moment.
 
+// Enum adds readability when selecting LEDs to turn on/off and which pumps to turn on/off
 enum REGOUT {
     WATER,
     FERTILIZER,
