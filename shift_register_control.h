@@ -31,6 +31,7 @@ representing the 16 bits we want to push into the shift registers,
 and sending those bits 1 by 1 into the shift registers with the appropriate clock pulses at the correct time.
 */
 void sendOutput(enum REGOUT, enum REGOUT, _Bool, _Bool);
+void init_reg();
 
 
 /*

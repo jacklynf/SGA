@@ -39,25 +39,22 @@
 
 #include "shift_register_control.h"
 #include "encoder.h"
+#include "interrupt_init.h"
+#include "npk.h"
 
 volatile enum REGOUT led_select1 = GREEN1, led_select2 = GREEN2;  
 volatile _Bool water_on = false, fertilizer_on = true;
 volatile uint8_t encoder_oldState, encoder_newState; //Varibles for rotary encoder state machine
-volatile uint8_t encoder_changed; //Rotary encoder changed flag
+volatile uint8_t encoder_changed = 0; //Rotary encoder changed flag
 volatile uint8_t encoderInput, encoderA, encoderB; //rotary encoder inputs variables
 
 int main(void) {
-    //Rotary Encoder Code Begin
-    DDRC &= ~(ENCODERA + ENCODERB); //Set EncoderA and EncoderB pins as inputs (constants defined in encoder.h)
-    PORTC |= (ENCODERA + ENCODERB); //Enable Pull-Up resistor on EncoderA and EncoderB
-    PCICR |= (1 << PCIE1); //Enable Pin Change interrupts on PORTC
-    PCMSK1 |= (1 << PCINT10)|(1 << PCINT11); // set mask bits
-    //PCMSK1 register will be controled based on when we have selected an item to be edited, and therefore want the rotary encoder to be enabled
-    //(so it isn't triggering interrupts when it isn't being utilized)
-    
-    encoder_changed = 0; //Set encoder changed flag to 0
+    init_encoder();
+    init_timer();
+    init_reg();
 
-    //Intialize rotary encoder state machine:
+    // Rotary encoder code begin
+    // Intialize rotary encoder state machine:
     encoderInput = PINC & (ENCODERA|ENCODERB);    //Read PINC
     encoderA = encoderInput & ENCODERA;     //Isolate EncoderA input
     encoderB = encoderInput & ENCODERB;     //Isolate EncoderB input
@@ -74,45 +71,15 @@ int main(void) {
     encoder_oldState = encoder_newState;
     //Rotary Encoder Code End
 
-
-    // Set up timer to check water & fertilizer levels
-            /*
-            To calculate timer value:
-                freq/prescalar = 9830400Hz/1024 = 9600Hz
-                tick time = 1/9600Hz = 104.2us
-                16 bit timer = 65536
-                To calculate upper timer value, input desired wait time, t: 65536 - (t/104.2us)
-                TCNT1 = 65536 - (t/(1/9600)) 
-                Ex: for t = 200ms, TCNT1 = 65536 - (0.2 / (1/9600)) = 63616
-            */
-    TCNT1 = 63616; // 200ms for 9.83MHz clock
-    TCCR1A = 0x00; // Set normal counter mode
-    TCCR1B = (1<<CS10) | (1<<CS12); // Set 1024 pre-scaler
-    TIMSK1 = (1 << TOIE1); // Set overflow interrupt enable bit
-    // End of timer init
-
-    // Shift register init
-    //Set DDR for Shift Registers (constants defined in shift_register_control.h)
-    DDRD |= SERIAL_DATA_OUT;
-    DDRD |= SERIAL_CLK;
-    DDRD |= STORE_CLK;
-    DDRB |= SHIFT_REG_OE; //Enable outputs on Shift Registers
-
-    PORTB &= ~SHIFT_REG_OE; // Enable shift registers (active low)
-    // End shift register init
-
     while (1){
         sei(); //Enable Global Interrupts
-        // sendOutput(led_select1, led_select2, water_on, fertilizer_on);
-
-
+        
         //Rotary Encoder code:
         //if encoder changed flag is set
         if(encoder_changed) {
             encoder_changed = 0;    //reset the flag
             sendOutput(led_select1, led_select2, water_on, fertilizer_on); // this won't stay here, just for testing encoder & shift reg
             //do other stuff needed (to be added)...
-
         }
 
     }
@@ -172,7 +139,7 @@ ISR(PCINT1_vect) //Interrupt vector for PORTC
 } 
 
 ISR (TIMER1_OVF_vect) {
-    // Dummy code for now, just selecting LEDs based on rotary input
+    // Dummy code for now, for now using timer to select LEDs based on rotary input
     // This timer will eventually do:
         // Check water levels & fertilizer levels
         // Update water level & fertilizer level variables

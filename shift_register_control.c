@@ -3,6 +3,17 @@
 #include "shift_register_control.h"
 #include <stdbool.h>
 
+void init_reg(){
+    //Set DDR for Shift Registers (constants defined in shift_register_control.h)
+    DDRD |= SERIAL_DATA_OUT;
+    DDRD |= SERIAL_CLK;
+    DDRD |= STORE_CLK;
+    DDRB |= SHIFT_REG_OE; //Enable outputs on Shift Registers
+
+    PORTB &= ~SHIFT_REG_OE; // Enable shift registers (active low)
+    // End shift register init
+}
+
 void sendOutput(enum REGOUT led_select1, enum REGOUT led_select2, 
                 _Bool water_on, _Bool fertilizer_on){
     int i; 
