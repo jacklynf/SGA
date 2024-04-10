@@ -76,7 +76,10 @@ int main(void) {
 	    encoder_oldState = 3;
 
     encoder_oldState = encoder_newState;
-    //Rotary Encoder Code End    
+    //Rotary Encoder Code End  
+
+    DDRC |= 1 << PC0;
+    PORTC &= ~(1<<PC0); // Turn off lab3 Green LED before TX
 
     // Test code for NPK
     int i = 0;
@@ -87,9 +90,8 @@ int main(void) {
         ++i;
     }
     PORTD &= ~RE_DE; // Set RE bit on transceiver low (active low)
-
-    DDRC |= 1 << PC0;
-    PORTC |= 1<<PC0;
+    
+    PORTC |= 1<<PC0; // Turn on lab3 Green LED after TX
 
     led_select1 = YELLOW1;
     led_select2 = YELLOW2;
