@@ -88,6 +88,9 @@ int main(void) {
     }
     PORTD &= ~RE_DE; // Set RE bit on transceiver low (active low)
 
+    DDRC |= 1 << PC0;
+    PORTC |= 1<<PC0;
+
     led_select1 = YELLOW1;
     led_select2 = YELLOW2;
     sendOutput(led_select1, led_select2, water_on, fertilizer_on); // for testing: turn on yellow leds when TX is complete

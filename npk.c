@@ -7,7 +7,7 @@
 void init_npk(){
     UBRR0   =  MYUBRR;                                       // Set baud rate
     UCSR0B  =  (1 << TXEN0   | 1 << RXEN0 | 1 << RXCIE0 );   // Enable RX and TX, enables RX interrupts
-    UCSR0C  =  (1 << UMSEL00 | 3 << UCSZ00);                 // Async., no parity, 1 stop bit, 8 data bits
+    UCSR0C  =  (3 << UCSZ00);                                // Async., no parity, 1 stop bit, 8 data bits
     DDRD   |=  (1 << PD2);                                   // Set PD2 to output (DE/~RE pins on transceiver)
 
 }
