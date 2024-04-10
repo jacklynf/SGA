@@ -1,30 +1,36 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <util/delay.h>
+
 #include "npk.h"
 
-// Modbus RTU requests for reading NPK values
-const char nitro[] = {0x01,0x03, 0x00, 0x1e, 0x00, 0x01, 0xe4, 0x0c};
-const char phos[] = {0x01,0x03, 0x00, 0x1f, 0x00, 0x01, 0xb5, 0xcc};
-const char pota[] = {0x01,0x03, 0x00, 0x20, 0x00, 0x01, 0x85, 0xc0};
-
-// A variable used to store NPK values
-char values[11];
-
 void init_npk(){
-    UCSR0B |= (1 << TXEN0 | 1 << RXEN0);  // Enable RX and TX
-    UCSR0C = (3 << UCSZ00);               // Async., no parity, // 1 stop bit, 8 data bits
+    UBRR0   =  MYUBRR;
+    UCSR0B  =  (1 << TXEN0 | 1 << RXEN0);     // Enable RX and TX
+    UCSR0C  =  (3 << UCSZ00);                 // Async., no parity, // 1 stop bit, 8 data bits
+    DDRD   |=  (1 << PD2);                    // Set PD2 to output
+    UCSR0B |= (1 << RXCIE0);               // Enable receiver interrupts
 }
 
 char rx_char() { 
-    // Wait for receive complete flag to go high 
-    while ( !(UCSR0A & (1 << RXC0)) ) {} 
+    PORTD &= ~RE; // Set receive bit on transceiver
+    
+    while ( !(UCSR0A & (1 << RXC0))); // Wait for receive complete flag to go high 
     
     return UDR0; 
 }
 
 void tx_char(char ch) { 
-    // Wait for transmitter data register empty 
-    while ((UCSR0A & (1<<UDRE0)) == 0) {} 
+    PORTD |= DE; // Set transmit bit on transceiver
+    _delay_ms(10);    
+    while ((UCSR0A & (1<<UDRE0)) == 0); // Wait for transmitter data register empty 
     
     UDR0 = ch; 
+    PORTD &= ~RE; // Set receive bit on transceiver
+    
+}
+
+void USART_Flush( void ) { 
+    unsigned char dummy; 
+    while ( UCSR0A & (1<<RXC0) ) dummy = UDR0; // flush buffer
 }
