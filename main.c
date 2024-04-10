@@ -42,14 +42,15 @@
 #include "interrupt_init.h"
 #include "npk.h"
 
-volatile enum REGOUT led_select1, led_select2; 
-volatile _Bool water_on = false, fertilizer_on = true; // Initialize pumps to off
+// Volatile variables for interrupts
+volatile enum REGOUT led_select1, led_select2;
+volatile _Bool water_on = false, fertilizer_on = false; // Initialize pumps to off
 volatile uint8_t encoder_oldState, encoder_newState; //Varibles for rotary encoder state machine
 volatile uint8_t encoder_changed = 0; //Rotary encoder changed flag
 volatile uint8_t encoderInput, encoderA, encoderB; //rotary encoder inputs variables
-volatile unsigned char receivedFlag = 0, npkBuf[8] = {20};
+volatile unsigned char tx_flag = 0, receivedFlag = 0, npk_buf[8] = {20};
 volatile int j = 0;
-const char request_nitro[] = {0x01, 0x03, 0x00, 0x1e, 0x00, 0x01, 0xe4, 0x0c};
+const char request_nitro[] = {0xff, 0x03, 0x00, 0x1e, 0x00, 0x01, 0xe4, 0x0c}; 
 
 int main(void) {
     // Initialize registers and ports
@@ -75,65 +76,58 @@ int main(void) {
 	    encoder_oldState = 3;
 
     encoder_oldState = encoder_newState;
-    //Rotary Encoder Code End
-
-
-    led_select1 = RED1;
-    led_select2 = RED2;
-    sendOutput(led_select1, led_select2, water_on, fertilizer_on);
-    
+    //Rotary Encoder Code End    
 
     // Test code for NPK
-    int i = 7;
-    while (i >=0){
+    int i = 0;
+    PORTD |= RE_DE; // Set DE bit on transceiver high
+    _delay_ms(10); 
+    while (i < 8){
         tx_char(request_nitro[i]);
-        i--;
+        ++i;
     }
-    USART_Flush();
+    PORTD &= ~RE_DE; // Set RE bit on transceiver low (active low)
+
     led_select1 = YELLOW1;
     led_select2 = YELLOW2;
-    sendOutput(led_select1, led_select2, water_on, fertilizer_on);
+    sendOutput(led_select1, led_select2, water_on, fertilizer_on); // for testing: turn on yellow leds when TX is complete
+
     // i = 0;
     // while (i < 8){
     //     char ch;
          
     //     ch = rx_char(); // read the received character from the register
-    //     DDRC |= 1 << DDC0;          // Set PORTC bit 0 for output
-    // 	PORTC |= 1 << PC0;      // Set PC0 to a 1
-    //     npkBuf[i] = ch; // assign the character to an index
+    //     npk_buf[i] = ch; // assign the character to an index
     //     i++;            // increment j to scroll through intBuf array
 
     //     if (i == 8){   
     //         receivedFlag = 1; // raise flag that data receive is complete
     //     }
     // }
-    // USART_Flush();
-    // led_select1 = GREEN1;
+
+    // led_select1 = GREEN1;   // For testing only: Turn LEDs green so we know RX is complete
     // led_select2 = GREEN2;
     // sendOutput(led_select1, led_select2, water_on, fertilizer_on);
 
     while (1){
         sei(); //Enable Global Interrupts
-        // sendOutput(led_select1, led_select2, water_on, fertilizer_on);
-        // PORTD |= RE;
-        // // _delay_ms(50);
-        // PORTD &= ~RE;
-
 
         //Rotary Encoder code:
         //if encoder changed flag is set
         if(encoder_changed) {
             encoder_changed = 0;    //reset the flag
+            led_select1 = GREEN1;
+            led_select2 = RED2;
             sendOutput(led_select1, led_select2, water_on, fertilizer_on); // this won't stay here, just for testing encoder & shift reg
             //do other stuff needed (to be added)...
         }
+
         if (receivedFlag){
             receivedFlag = 0;       // lower flag to allow another data rx
             j = 0;                  // reset j to allow another data rx
-            led_select1 = GREEN1;
+            led_select1 = GREEN1;   // For testing only: Turn both LEDs green so we know RX is complete
             led_select2 = GREEN2;
             sendOutput(led_select1, led_select2, water_on, fertilizer_on);
-
         }
     }
     return 0;   /* never reached */
@@ -193,7 +187,7 @@ ISR(PCINT1_vect) //Interrupt vector for PORTC
 
 ISR (TIMER1_OVF_vect) {
     /*
-    Dummy code for now, for now using timer to select LEDs based on rotary input
+    This interrupt is empty for now but has been tested. Currently interrupting every 1 second.
     This timer will eventually do:
         Check water levels & fertilizer levels
         Update water level & fertilizer level variables
@@ -211,80 +205,20 @@ ISR (TIMER1_OVF_vect) {
     Possibly different values can be used for timer. Maybe check water levels every 1 minute and check sun every 30 seconds? etc.
     */
 
-
-    // // Test code for NPK
-    // int i = 0;
-    // while (i < 8){
-    //     tx_char(request_nitro[i]);
-    //     i++;
-    // }
-    // i = 0;
-    // while (i < 8){
-    //     char ch;
-         
-    //     ch = UDR0; // read the received character from the register
-    //     npkBuf[i] = ch; // assign the character to an index
-    //     i++;            // increment j to scroll through intBuf array
-
-    //     if (i == 8){   
-    //         receivedFlag = 1; // raise flag that data receive is complete
-    //     }
-    // }
     
-    _delay_ms(50);
-    led_select1 = RED1;
-    led_select2 = GREEN2;
-
-
-
-
-    // if ((npkBuf[4] >= 0x00)&&(npkBuf[4] < 0x01)){
-    //     led_select1 = GREEN1;
-    //     led_select2 = GREEN2;
-    // }
-    // else if((npkBuf[4] >= 0x01)&&(npkBuf[4] < 0x20)){
-    //     led_select1 = YELLOW1;
-    //     led_select2 = YELLOW2;
-    // }
-    // else if ((npkBuf[4] >= 0x20)){
-    //     led_select1 = RED1;
-    //     led_select2 = RED2;
-    // }
-    // else{
-    //     led_select1 = GREEN1;
-    //     led_select2 = RED2;
-    // }
-
-    // End test code for NPK
-
-
-
-    // if (encoder_newState == 1){
-    //     led_select1 = GREEN1;
-    //     led_select2 = GREEN2;
-    // }
-    // else if(encoder_newState == 2){
-    //     led_select1 = YELLOW1;
-    //     led_select2 = YELLOW2;
-    // }
-    // else if(encoder_newState == 3){
-    //     led_select1 = RED1;
-    //     led_select2 = RED2;
-    // }
     TCNT1 = MY_TCNT1; 
 }
 
 
-// ISR(USART_RX_vect)
-// {
-//     char ch;
+ISR(USART_RX_vect) // Interrupt every time a byte enters the UDR0 register
+{
+    char ch;
          
-//     ch = UDR0; // read the received character from the register
-//     npkBuf[j] = ch; // assign the character to an index
-//     j++;            // increment j to scroll through intBuf array
+    ch = UDR0; // read the received character from the register
+    npk_buf[j] = ch; // assign the character to an index
+    j++;            // increment j to scroll through intBuf array
 
-//     if (j == 8){   
-//         receivedFlag = 1; // raise flag that data receive is complete
-//         USART_Flush();
-//     }
-// }
+    if (j == 8){   
+        receivedFlag = 1; // raise flag that data receive is complete
+    }
+}
