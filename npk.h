@@ -1,4 +1,4 @@
-#define FOSC    9830400             // Clock frequency
+#define FOSC    7372800             // Clock frequency
 #define BAUD    4800                // Default baud for NPK sensor
 #define MYUBRR  FOSC/16/BAUD-1    // Value for UBRR0
 

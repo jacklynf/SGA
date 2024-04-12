@@ -50,7 +50,9 @@ volatile uint8_t encoder_changed = 0; //Rotary encoder changed flag
 volatile uint8_t encoderInput, encoderA, encoderB; //rotary encoder inputs variables
 volatile unsigned char tx_flag = 0, receivedFlag = 0, npk_buf[8] = {20};
 volatile int j = 0;
-const char request_nitro[] = {0xff, 0x03, 0x00, 0x1e, 0x00, 0x01, 0xe4, 0x0c}; 
+const char request_nitro[] = {0x01, 0x03, 0x00, 0x1e, 0x00, 0x03, 0x65, 0xcd}; // req npk 
+// const char request_nitro[] = {0xff, 0x03, 0x07, 0xd0, 0x00, 0x01, 0x91, 0x59};  // reg slave id
+// const char request_nitro[] = {0xff, 0x03, 0x00, 0x1e, 0x00, 0x01, 0xe4, 0x0c}; 
 
 int main(void) {
     // Initialize registers and ports
@@ -85,10 +87,20 @@ int main(void) {
     int i = 0;
     PORTD |= RE_DE; // Set DE bit on transceiver high
     _delay_ms(10); 
-    while (i < 8){
+    while (i  < 8){
         tx_char(request_nitro[i]);
         ++i;
     }
+
+    while ( !(UCSR0A & (1 << TXC0))); // Wait until all bytes are sent from the atmega
+    // _delay_ms(10);
+
+// check txn0
+
+    // As the Slave RS-485 of Arduino UNO receives value, the pins DE & RE must be made LOW.
+    // Do we need to do HIGH to send ATmega -> RS485, then LOW for RS485 -> NPK sensor, then repeat to return? prob no
+    // Easiest method is to monitor the UART transmit buffer, 
+    // and if not empty then it outputs an active high signal to your RS485 module (assuming you tied the DE and RE together).
     PORTD &= ~RE_DE; // Set RE bit on transceiver low (active low)
     
     PORTC |= 1<<PC0; // Turn on lab3 Green LED after TX
@@ -110,9 +122,9 @@ int main(void) {
     //     }
     // }
 
-    // led_select1 = GREEN1;   // For testing only: Turn LEDs green so we know RX is complete
-    // led_select2 = GREEN2;
-    // sendOutput(led_select1, led_select2, water_on, fertilizer_on);
+    led_select1 = GREEN1;   // For testing only: Turn LEDs green so we know RX is complete
+    led_select2 = GREEN2;
+    sendOutput(led_select1, led_select2, water_on, fertilizer_on);
 
     while (1){
         sei(); //Enable Global Interrupts
@@ -129,6 +141,7 @@ int main(void) {
 
         if (receivedFlag){
             receivedFlag = 0;       // lower flag to allow another data rx
+            // PORTD |= RE_DE; ////////// check if finished receiving before flipping? yes 
             j = 0;                  // reset j to allow another data rx
             led_select1 = GREEN1;   // For testing only: Turn both LEDs green so we know RX is complete
             led_select2 = GREEN2;
