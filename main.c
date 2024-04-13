@@ -205,7 +205,7 @@ ISR(PCINT1_vect) //Interrupt vector for PORTC
 
 ISR (TIMER1_OVF_vect) {
     /*
-    This interrupt is empty for now but has been tested. Currently interrupting every 1 second.
+    This interrupt is empty for now but has been tested. Currently interrupting every 1 ms.
     This timer will eventually do:
         Check water levels & fertilizer levels
         Update water level & fertilizer level variables
