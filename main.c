@@ -41,15 +41,16 @@
 #include "encoder.h"
 #include "interrupt_init.h"
 #include "npk.h"
+#include "humidity.h"
 
-#define NUM_PUMPS 2
 
 // Volatile variables for interrupts
 volatile int test_flag=0;
+volatile int changed =0;
 
 // NPK variables
-volatile int rx_complete = false, check_npk = 0, fertilizer_complete = true; // NPK flags
-volatile int j = 0, npk_counter = 0; // NPK interrupt counters
+volatile uint8_t rx_complete = false, check_npk = 0, fertilizer_complete = true; // NPK flags
+volatile uint8_t j = 0, npk_counter = 0; // NPK interrupt counters
 volatile unsigned char npk_buf[8] = {0}; // NPK RX buffer
 volatile _Bool fertilizer = false; // Initialize fertilizer pump to off
 
@@ -58,7 +59,9 @@ volatile _Bool grow_light = false; // Initialize grow light to off
 
 // Humidity and water variables
 volatile _Bool water = false; // Initialize water pump to off
-volatile int water_complete = true; // Water flags
+volatile uint8_t water_complete = true; // Water flags
+volatile uint8_t humidity_counter = 0; // Humidity interrupt counter
+volatile uint8_t check_humidity = 0; // Humidity flag
 
 
 ///////////////  End volatile variables
@@ -76,16 +79,8 @@ enum PLANT_NEEDS{
     ALPINE     // Dry, moderate light
 };
 
-enum LIGHT_LEVELS{
-    LOW,
-    MODERATE,
-    HIGH
-};
-
-enum WATER_LEVELS{
-    DRY,
-    HUMID
-};
+enum LIGHT_LEVELS{LOW, MODERATE,HIGH};
+enum WATER_LEVELS{DRY,HUMID};
 
 int main(void) {    
     sei(); // Enable Global Interrupts
@@ -95,14 +90,18 @@ int main(void) {
     init_timer();
     init_reg();
     init_npk();
+    // init_humidity();
+    begin();
     // End initialization
 
     uint8_t water_needs, light_needs;
+    uint64_t humidity = 0;
     enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
     // _Bool wat_fert_needed[NUM_PUMPS] = {false,false};
     // pumps_struct pump_states = {.wat_fert_needed = {false,false}, .num_pumps = 2}; // Assign pointer to initial pump states and number of pumps
 
     DDRC |= (1 << PD0);
+    
 
     while (1){
         if(encoder_changed) { // Set plant needs based on user input
@@ -130,9 +129,79 @@ int main(void) {
                     break;
             }
 
-            led_select1 = GREEN1;
-            led_select2 = RED2;
-            sendOutput(led_select1, led_select2, water, fertilizer); // this won't stay here, just for testing encoder & shift reg
+            // led_select1 = GREEN1;
+            // led_select2 = GREEN2;
+            // sendOutput(led_select1, led_select2, water, fertilizer); // this won't stay here, just for testing encoder & shift reg
+        }
+
+        if (changed){
+            changed = 0;
+            // led_select1 = GREEN1;
+            // led_select2 = RED2;
+            // sendOutput(led_select1, led_select2, water, fertilizer);
+        }
+                // led_select1 = GREEN1;
+                // led_select2 = GREEN2;
+                // sendOutput(led_select1, led_select2, water, fertilizer);
+
+        if(check_humidity){
+            check_humidity = false;
+            // cli();
+            update;
+
+            humidity = get_humidity();
+            // sei();
+
+            // if (humidity > 10000){
+            //     led_select1 = GREEN1;
+            //     led_select2 = GREEN2;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
+            // }
+            if ((humidity > 50)){
+                led_select1 = RED1;
+                led_select2 = RED2;
+                sendOutput(led_select1, led_select2, water, fertilizer);
+            }
+            else if ((humidity >0) &&(humidity <= 50)){
+                led_select1 = YELLOW1;
+                led_select2 = YELLOW2;
+                sendOutput(led_select1, led_select2, water, fertilizer);
+            }
+            else if (humidity == 0){
+                led_select1 = RED1;
+                led_select2 = GREEN2;
+                // led_select1 = led_select1 + 1;
+                // led_select2 = led_select2 + 1;
+                // if (led_select1 > GREEN1)
+                //     led_select1 = RED1;
+                // if (led_select2 > GREEN2)
+                //     led_select2 = RED2;
+                sendOutput(led_select1, led_select2, water, fertilizer);
+            }
+            else{
+                led_select1 = GREEN1;
+                led_select2 = GREEN2;
+                sendOutput(led_select1, led_select2, water, fertilizer);
+            }
+            // if (humidity == 2){
+            //     led_select1 = YELLOW1;
+            //         led_select2 = YELLOW2;
+            //         sendOutput(led_select1, led_select2, water, fertilizer);
+            // }
+            // int k, m = 0;
+            // for (k = humidity/10; k < humidity; k+10){
+            //     // if (m%2 == 0)
+            //     //     PORTC &= ~(1<<PC0);
+            //     // if (m%2 == 1)
+            //     //     PORTC |= (1 << PC0);
+            //     m++;
+            //     _delay_ms(300);
+            //     if (humidity > 100){
+            //         led_select1 = GREEN1;
+            //         led_select2 = RED2;
+            //         sendOutput(led_select1, led_select2, water, fertilizer);
+            //     }  
+            // } 
         }
 
         if (check_npk){
@@ -215,10 +284,16 @@ ISR(PCINT1_vect) //Interrupt vector for PORTC
 ISR (TIMER1_COMPA_vect) {
 
     npk_counter++; 
+    humidity_counter++;
 
     if (npk_counter == 1){ // Counter value * 2 second timer = time interval to check NPK
         check_npk = true;
         npk_counter = 0;
+    }
+
+    if (humidity_counter == 2){
+        check_humidity = true;
+        humidity_counter = 0;
     }
 
     if (fertilizer){
@@ -239,6 +314,8 @@ ISR (TIMER1_COMPA_vect) {
         PORTC |= 1<<PC0;
         test_flag=1;
     }
+
+
     /*
     This interrupt is empty for now but has been tested. Currently interrupting every 5 seconds.
     This timer will eventually do:
@@ -261,7 +338,7 @@ ISR (TIMER1_COMPA_vect) {
 }
 
 
-ISR(USART_RX_vect) // Interrupt every time a byte enters the UDR0 register
+ISR(USART_RX_vect) // Interrupt when a byte enters the UDR0 register
 {
     char ch;
          
@@ -272,4 +349,8 @@ ISR(USART_RX_vect) // Interrupt every time a byte enters the UDR0 register
     if (j == 8){   
         rx_complete = 1; // raise flag that data receive is complete
     }
+}
+
+ISR(PCINT2_vect){
+    changed = 1;
 }

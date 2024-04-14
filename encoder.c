@@ -6,7 +6,7 @@ void init_encoder(){
     DDRC   &= ~(ENCODERA|ENCODERB); //Set EncoderA and EncoderB pins as inputs (constants defined in encoder.h)
     PORTC  |=  (ENCODERA|ENCODERB); //Enable Pull-Up resistor on EncoderA and EncoderB
     PCICR  |=  (1 << PCIE1); //Enable Pin Change interrupts on PORTC
-    PCMSK1 |=  (1 << PCINT10)|(1 << PCINT11); // set mask bits
+    PCMSK1 |=  (1 << PCINT10)|(1 << PCINT11); // set mask bits to track PC2 and PC3 pin changes
 
     encoder_changed = 0; // initialize flag
 
