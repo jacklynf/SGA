@@ -7,8 +7,26 @@ void init_encoder(){
     PORTC  |=  (ENCODERA|ENCODERB); //Enable Pull-Up resistor on EncoderA and EncoderB
     PCICR  |=  (1 << PCIE1); //Enable Pin Change interrupts on PORTC
     PCMSK1 |=  (1 << PCINT10)|(1 << PCINT11); // set mask bits
-    //PCMSK1 register will be controled based on when we have selected an item to be edited, and therefore want the rotary encoder to be enabled
-    //(so it isn't triggering interrupts when it isn't being utilized)
+
+    encoder_changed = 0; // initialize flag
+
+    // Intialize rotary encoder state machine:
+    encoder_input = PINC & (ENCODERA|ENCODERB);    //Read PINC
+    encoder_A = encoder_input & ENCODERA;     //Isolate EncoderA input
+    encoder_B = encoder_input & ENCODERB;     //Isolate EncoderB input
+
+    if (!encoder_B && !encoder_A)         //If encoder input is 00
+	    encoder_old_state = 0;
+    else if (!encoder_B && encoder_A)     //If encoder input is 01
+	    encoder_old_state = 1;
+    else if (encoder_B && !encoder_A)     //If encoder input is 10
+	    encoder_old_state = 2;
+    else                                //If encoder input is 11
+	    encoder_old_state = 3;
+
+    encoder_old_state = encoder_new_state;
+
+    return encoder_old_state; // Keep settings from previous position
 }
 
 void encoderEnable(){

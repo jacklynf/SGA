@@ -42,110 +42,120 @@
 #include "interrupt_init.h"
 #include "npk.h"
 
-// Volatile variables for interrupts
-volatile enum REGOUT led_select1, led_select2;
-volatile _Bool water_on = false, fertilizer_on = false; // Initialize pumps to off
-volatile uint8_t encoder_oldState, encoder_newState; //Varibles for rotary encoder state machine
-volatile uint8_t encoder_changed = 0; //Rotary encoder changed flag
-volatile uint8_t encoderInput, encoderA, encoderB; //rotary encoder inputs variables
-volatile unsigned char tx_flag = 0, receivedFlag = 0, npk_buf[8] = {20};
-volatile int j = 0;
-const char request_nitro[] = {0x01, 0x03, 0x00, 0x1e, 0x00, 0x03, 0x65, 0xcd}; // req npk 
-// const char request_nitro[] = {0xff, 0x03, 0x07, 0xd0, 0x00, 0x01, 0x91, 0x59};  // reg slave id
-// const char request_nitro[] = {0xff, 0x03, 0x00, 0x1e, 0x00, 0x01, 0xe4, 0x0c}; 
+#define NUM_PUMPS 2
 
-int main(void) {
-    // Initialize registers and ports
+// Volatile variables for interrupts
+volatile int test_flag=0;
+
+// NPK variables
+volatile int rx_complete = false, check_npk = 0, fertilizer_complete = true; // NPK flags
+volatile int j = 0, npk_counter = 0; // NPK interrupt counters
+volatile unsigned char npk_buf[8] = {0}; // NPK RX buffer
+volatile _Bool fertilizer = false; // Initialize fertilizer pump to off
+
+// Grow light variables
+volatile _Bool grow_light = false; // Initialize grow light to off
+
+// Humidity and water variables
+volatile _Bool water = false; // Initialize water pump to off
+volatile int water_complete = true; // Water flags
+
+
+///////////////  End volatile variables
+
+// typedef struct{ // Structure to hold pumps array
+//     _Bool *wat_fert_needed;
+//     uint8_t num_pumps;
+// } user_struct;
+ 
+// Set by user via rotary encoder
+enum PLANT_NEEDS{
+    TROPICAL,  // Humid, sunny
+    DESERT,    // Dry, sunny
+    TEMPERATE, // Humid, low light 
+    ALPINE     // Dry, moderate light
+};
+
+enum LIGHT_LEVELS{
+    LOW,
+    MODERATE,
+    HIGH
+};
+
+enum WATER_LEVELS{
+    DRY,
+    HUMID
+};
+
+int main(void) {    
+    sei(); // Enable Global Interrupts
+    
+    // Initialize registers, ports, and sensors
     init_encoder();
-    init_timer(); // Change values in init_timer() function to make timer interrupt shorter/longer
+    init_timer();
     init_reg();
     init_npk();
     // End initialization
 
-    // Rotary encoder code begin
-    // Intialize rotary encoder state machine:
-    encoderInput = PINC & (ENCODERA|ENCODERB);    //Read PINC
-    encoderA = encoderInput & ENCODERA;     //Isolate EncoderA input
-    encoderB = encoderInput & ENCODERB;     //Isolate EncoderB input
+    uint8_t water_needs, light_needs;
+    enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
+    // _Bool wat_fert_needed[NUM_PUMPS] = {false,false};
+    // pumps_struct pump_states = {.wat_fert_needed = {false,false}, .num_pumps = 2}; // Assign pointer to initial pump states and number of pumps
 
-    if (!encoderB && !encoderA)         //If encoder input is 00
-	    encoder_oldState = 0;
-    else if (!encoderB && encoderA)     //If encoder input is 01
-	    encoder_oldState = 1;
-    else if (encoderB && !encoderA)     //If encoder input is 10
-	    encoder_oldState = 2;
-    else                                //If encoder input is 11
-	    encoder_oldState = 3;
-
-    encoder_oldState = encoder_newState;
-    //Rotary Encoder Code End  
-
-    DDRC |= 1 << PC0;
-    PORTC &= ~(1<<PC0); // Turn off lab3 Green LED before TX
-
-    // Test code for NPK
-    int i = 0;
-    PORTD |= RE_DE; // Set DE bit on transceiver high
-    _delay_ms(10); 
-    while (i  < 8){
-        tx_char(request_nitro[i]);
-        ++i;
-    }
-
-    while ( !(UCSR0A & (1 << TXC0))); // Wait until all bytes are sent from the atmega
-    // _delay_ms(10);
-
-// check txn0
-
-    // As the Slave RS-485 of Arduino UNO receives value, the pins DE & RE must be made LOW.
-    // Do we need to do HIGH to send ATmega -> RS485, then LOW for RS485 -> NPK sensor, then repeat to return? prob no
-    // Easiest method is to monitor the UART transmit buffer, 
-    // and if not empty then it outputs an active high signal to your RS485 module (assuming you tied the DE and RE together).
-    PORTD &= ~RE_DE; // Set RE bit on transceiver low (active low)
-    
-    PORTC |= 1<<PC0; // Turn on lab3 Green LED after TX
-
-    led_select1 = YELLOW1;
-    led_select2 = YELLOW2;
-    sendOutput(led_select1, led_select2, water_on, fertilizer_on); // for testing: turn on yellow leds when TX is complete
-
-    // i = 0;
-    // while (i < 8){
-    //     char ch;
-         
-    //     ch = rx_char(); // read the received character from the register
-    //     npk_buf[i] = ch; // assign the character to an index
-    //     i++;            // increment j to scroll through intBuf array
-
-    //     if (i == 8){   
-    //         receivedFlag = 1; // raise flag that data receive is complete
-    //     }
-    // }
-
-    led_select1 = GREEN1;   // For testing only: Turn LEDs green so we know RX is complete
-    led_select2 = GREEN2;
-    sendOutput(led_select1, led_select2, water_on, fertilizer_on);
+    DDRC |= (1 << PD0);
 
     while (1){
-        sei(); //Enable Global Interrupts
+        if(encoder_changed) { // Set plant needs based on user input
+            encoder_changed = false;    
+            switch(encoder_new_state){
+                case TROPICAL:
+                    water_needs = HUMID;
+                    light_needs = HIGH;
+                    break;
+                case DESERT:
+                    water_needs = DRY;
+                    light_needs = HIGH;
+                    break;
+                case TEMPERATE:
+                    water_needs = HUMID;
+                    light_needs = LOW;
+                    break;
+                case ALPINE:
+                    water_needs = DRY;
+                    light_needs = MODERATE;
+                    break;
+                default:
+                    water_needs = HUMID;
+                    light_needs = HIGH;
+                    break;
+            }
 
-        //Rotary Encoder code:
-        //if encoder changed flag is set
-        if(encoder_changed) {
-            encoder_changed = 0;    //reset the flag
             led_select1 = GREEN1;
             led_select2 = RED2;
-            sendOutput(led_select1, led_select2, water_on, fertilizer_on); // this won't stay here, just for testing encoder & shift reg
-            //do other stuff needed (to be added)...
+            sendOutput(led_select1, led_select2, water, fertilizer); // this won't stay here, just for testing encoder & shift reg
         }
 
-        if (receivedFlag){
-            receivedFlag = 0;       // lower flag to allow another data rx
-            // PORTD |= RE_DE; ////////// check if finished receiving before flipping? yes 
-            j = 0;                  // reset j to allow another data rx
-            led_select1 = GREEN1;   // For testing only: Turn both LEDs green so we know RX is complete
-            led_select2 = GREEN2;
-            sendOutput(led_select1, led_select2, water_on, fertilizer_on);
+        if (check_npk){
+            check_npk = false;
+            get_npk(); // Request NPK values from soil sensor
+        }
+
+        if (fertilizer_complete){
+            fertilizer_complete = false;
+            sendOutput(led_select1, led_select2, water, fertilizer = false); // Turn fertilizer pump off
+        }
+
+        if (water_complete){
+            water_complete = false;
+            sendOutput(led_select1, led_select2, water = false, fertilizer); // Turn water pump off
+        }
+
+
+        if (rx_complete){               // Evaluate NPK values here
+            rx_complete = false;        // Lower flag to allow another data rx
+            j = 0;                      // reset j to allow another data rx
+            fertilizer = fertilizer_needed(npk_buf[3], npk_buf[4], npk_buf[5]); // Evaluate NPK levels, determine if fertilizer is needed
+            
         }
     }
     return 0;   /* never reached */
@@ -154,58 +164,83 @@ int main(void) {
 ISR(PCINT1_vect) //Interrupt vector for PORTC
 {
     //Begin code for Rotary Encoder related Interrupt Handling
-    encoderInput = PINC & (ENCODERA|ENCODERB);    //Read inputs simultaneously
-    encoderA = encoderInput & ENCODERA;     //Isolate EncoderA input
-    encoderB = encoderInput & ENCODERB;     //Isolate EncoderB input
-    if (encoder_oldState == 0) {
-        if(encoderA){
+    encoder_input = PINC & (ENCODERA|ENCODERB);    //Read inputs simultaneously
+    encoder_A = encoder_input & ENCODERA;     //Isolate EncoderA input
+    encoder_B = encoder_input & ENCODERB;     //Isolate EncoderB input
+    if (encoder_old_state == TROPICAL) {
+        if(encoder_A){
             //Clockwise Rotation
-            encoder_newState = 1;
-        }else if(encoderB){
+            encoder_new_state = DESERT;
+        }else if(encoder_B){
             //Counter-Clockwise Rotation
-            encoder_newState = 2;
+            encoder_new_state = TEMPERATE;
         }
 	}
-	else if (encoder_oldState == 1) {
-        if(encoderB){
+	else if (encoder_old_state == DESERT) {
+        if(encoder_B){
             //Clockwise Rotation
-            encoder_newState = 3;
-        }else if(!encoderA){
+            encoder_new_state = ALPINE;
+        }else if(!encoder_A){
             //Counter-Clockwise Rotation
-            encoder_newState = 0;
+            encoder_new_state = TROPICAL;
         }
 	}
-	else if (encoder_oldState == 2) {
-        if(!encoderB){
+	else if (encoder_old_state == TEMPERATE) {
+        if(!encoder_B){
             //Clockwise Rotation
-            encoder_newState = 0;
-        }else if(encoderA){
+            encoder_new_state = TROPICAL;
+        }else if(encoder_A){
             //Counter-Clockwise Rotation
-            encoder_newState = 3;
+            encoder_new_state = ALPINE;
         }
 	}
-	else {   // old_state = 3
-        if(!encoderA){
+	else {   // old_state = ALPINE
+        if(!encoder_A){
             //Clockwise Rotation
-            encoder_newState = 2;
-        }else if(!encoderB){
+            encoder_new_state = TEMPERATE;
+        }else if(!encoder_B){
             //Counter-Clockwise Rotation
-            encoder_oldState = 1;
+            encoder_old_state = DESERT;
         }
 	}
 
     //If state has changed, change oldstate to newstate and set changed flag to report that the encoder was turned.
-	if (encoder_newState != encoder_oldState) {
+	if (encoder_new_state != encoder_old_state) {
 	    encoder_changed = 1;
-	    encoder_oldState = encoder_newState;
+	    encoder_old_state = encoder_new_state;
 	}
     //End code for Rotary Encoder related Interrupt Handling
-
 } 
 
-ISR (TIMER1_OVF_vect) {
+ISR (TIMER1_COMPA_vect) {
+
+    npk_counter++; 
+
+    if (npk_counter == 1){ // Counter value * 2 second timer = time interval to check NPK
+        check_npk = true;
+        npk_counter = 0;
+    }
+
+    if (fertilizer){
+        fertilizer = false; // Turn off fertilizer pump after returning from interrupt
+        fertilizer_complete = true; 
+    }
+
+    if (water){
+        water = false; // Turn off water pump after returning from interrupt
+        water_complete = true;
+    }
+
+    if (test_flag){
+        PORTC &= ~(1<<PC0);
+        test_flag=0;
+    }
+    else{
+        PORTC |= 1<<PC0;
+        test_flag=1;
+    }
     /*
-    This interrupt is empty for now but has been tested. Currently interrupting every 1 ms.
+    This interrupt is empty for now but has been tested. Currently interrupting every 5 seconds.
     This timer will eventually do:
         Check water levels & fertilizer levels
         Update water level & fertilizer level variables
@@ -223,8 +258,6 @@ ISR (TIMER1_OVF_vect) {
     Possibly different values can be used for timer. Maybe check water levels every 1 minute and check sun every 30 seconds? etc.
     */
 
-    
-    TCNT1 = MY_TCNT1; 
 }
 
 
@@ -237,6 +270,6 @@ ISR(USART_RX_vect) // Interrupt every time a byte enters the UDR0 register
     j++;            // increment j to scroll through intBuf array
 
     if (j == 8){   
-        receivedFlag = 1; // raise flag that data receive is complete
+        rx_complete = 1; // raise flag that data receive is complete
     }
 }
