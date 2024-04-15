@@ -4,11 +4,6 @@
 #define WATER_IDX 0
 #define LIGHT_IDX 1
 
-typedef struct{
-    uint8_t *arr;
-    uint8_t sz;
-} plant_settings;
-
 // Volatile encoder variables for interrupt
 volatile uint8_t encoder_old_state, encoder_new_state; // state machine
 volatile uint8_t encoder_changed; // flag

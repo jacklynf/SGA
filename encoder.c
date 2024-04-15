@@ -27,10 +27,6 @@ void init_encoder(){
     encoder_old_state = encoder_new_state;
 }
 
-// uint8_t user_input(uint8_t en){
-//     return en;
-// }
-
 uint16_t user_input(uint8_t encoder_new_state){
     uint8_t water_needs, light_needs;
     uint16_t needs;

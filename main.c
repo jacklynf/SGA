@@ -107,8 +107,9 @@ int main(void) {
     // End initialization
 
     uint8_t i;
-    plant_settings needs;
     uint16_t humidity = 0;
+    uint8_t water_needs, light_needs;
+    uint16_t water_light;
 
     enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
    
@@ -123,7 +124,7 @@ int main(void) {
 
     DDRC |= (1 << PD0);
 
-    uint8_t water_needs, light_needs;
+    
 
     while (1){
         if (check_light){
@@ -132,7 +133,7 @@ int main(void) {
 
         if(encoder_changed) { // Set plant needs based on user input
             encoder_changed = false;
-            uint16_t water_light = user_input(encoder_new_state);
+            water_light = user_input(encoder_new_state);
             water_needs = (water_light >> 8), light_needs = water_light;
         }
 
