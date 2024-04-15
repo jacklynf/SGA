@@ -7,7 +7,7 @@
 
 #define MUX_BITS ((1 << MUX3)|(1 << MUX2)|(1 << MUX1)|(1 << MUX0))
 
-void init_sm(){
+void init_soilmoisture(){
     // Initialize the ADC
 
     ADMUX |= (1 << REFS0)|(1 << ADLAR); //set REF bits (0-5V VCC) & 8bit accuracy (ADLAR bit)

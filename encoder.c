@@ -25,8 +25,6 @@ void init_encoder(){
 	    encoder_old_state = 3;
 
     encoder_old_state = encoder_new_state;
-
-    return encoder_old_state; // Keep settings from previous position
 }
 
 void encoderEnable(){

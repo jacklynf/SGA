@@ -37,7 +37,7 @@ uint16_t get_humidity(){
 
 uint8_t update_humidity(){
     int i;
-    const unsigned int MAX_TIMEOUT = UINT_MAX; // no timeouts occur with this value but it takes too long, need scope 
+    // const unsigned int MAX_TIMEOUT = UINT_MAX; // no timeouts occur with this value but it takes too long, need scope 
     const int LOW =0, HIGH =1;
     unsigned long marks[41] = {0};
     unsigned long stops[40] = {0};

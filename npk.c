@@ -47,7 +47,7 @@ _Bool fertilizer_needed(unsigned char nitrogen, unsigned char phosphorus, unsign
     unsigned char nit_thresh = 0x20, phos_thresh = 0xa0, pot_thresh = 0x30; 
     uint8_t nit_idx = 0, phos_idx = 1, pot_idx = 2;
     uint8_t low_npk[3] = {0};   
-    uint8_t i, sum;
+    uint8_t i, sum = 0;
 
     // Evaluate NPK levels here 
     if (nitrogen < nit_thresh)

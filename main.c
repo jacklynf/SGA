@@ -36,6 +36,7 @@
 #include <util/delay.h>
 #include <stdbool.h>
 #include <avr/interrupt.h>
+#include <stddef.h>
 
 #include "shift_register_control.h"
 #include "encoder.h"
@@ -43,11 +44,21 @@
 #include "npk.h"
 #include "humidity.h"
 #include "soil_moisture.h"
+#include "i2c.h"
+#include "light_sensor.h"
 
+// Macros for how often to check sensors. 
+// Timer interrupts every 2 seconds, so all count values are multiplied by 2 seconds.
+#define MOISTURE_COUNT 2 
+#define HUMIDITY_COUNT 2
+#define NPK_COUNT      2
+#define LIGHT_COUNT    1
+
+#define BDIV (F_CPU / 100000 - 16) / 2 + 1    // Puts I2C rate just below 100kHz
+#define LIGHTSENSOR_ADDR 0x29
 
 // Volatile variables for interrupts
 volatile int test_flag=0;
-volatile int changed =0;
 
 // NPK variables
 volatile uint8_t rx_complete = false, check_npk = 0, fertilizer_complete = true; // NPK flags
@@ -56,7 +67,9 @@ volatile unsigned char npk_buf[8] = {0}; // NPK RX buffer
 volatile _Bool fertilizer = false; // Initialize fertilizer pump to off
 
 // Grow light variables
-volatile _Bool grow_light = false; // Initialize grow light to off
+volatile _Bool light_on = false; // Initialize grow light to off
+volatile uint8_t check_light = 0; // Light sensor flag
+volatile uint8_t lightsensor_counter = 0; // Light sensor interrupt counter
 
 // Humidity variables
 volatile _Bool water = false; // Initialize water pump to off
@@ -91,25 +104,37 @@ enum WATER_LEVELS{DRY,HUMID};
 int main(void) {    
     sei(); // Enable Global Interrupts
     
-    // Initialize registers, ports, and sensors
+    // Initialize i2c, registers, ports, and sensors    
+    i2c_init(BDIV);
     init_encoder();
     init_timer();
     init_reg();
     init_npk();
     init_humidity();
-    init_sm();
+    init_soilmoisture();
     // End initialization
 
-    uint8_t water_needs, light_needs;
+    uint8_t i, water_needs, light_needs;
     uint16_t humidity = 0;
+
     enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
-    // _Bool wat_fert_needed[NUM_PUMPS] = {false,false};
-    // pumps_struct pump_states = {.wat_fert_needed = {false,false}, .num_pumps = 2}; // Assign pointer to initial pump states and number of pumps
+   
+   // Begin i2c communication with light sensor
+    uint8_t dev_id = begin_lightsensor();
+    if (dev_id == 0x50){
+        led_select1 = GREEN1;
+        led_select2 = GREEN2;
+        sendOutput(led_select1, led_select2, water, fertilizer);
+    }
+    _delay_ms(1);
 
     DDRC |= (1 << PD0);
-    
 
     while (1){
+        if (check_light){
+            check_light = false;
+        }
+
         if(encoder_changed) { // Set plant needs based on user input
             encoder_changed = false;    
             switch(encoder_new_state){
@@ -137,7 +162,7 @@ int main(void) {
 
             // led_select1 = GREEN1;
             // led_select2 = GREEN2;
-            // sendOutput(led_select1, led_select2, water, fertilizer); // this won't stay here, just for testing encoder & shift reg
+            // sendOutput(led_select1, led_select2, water, fertilizer); 
         }
 
         if (check_moisture){
@@ -200,7 +225,7 @@ int main(void) {
             //     sendOutput(led_select1, led_select2, water, fertilizer);
             // }            
         }
-
+        
         if (check_npk){
             check_npk = false;
             get_npk(); // Request NPK values from soil sensor
@@ -283,18 +308,24 @@ ISR (TIMER1_COMPA_vect) {
     npk_counter++; 
     humidity_counter++;
     moisture_counter++;
+    lightsensor_counter++;
 
-    if (moisture_counter == 2){
-        check_moisture = true;
-        moisture_counter = 1;
+    if (lightsensor_counter == LIGHT_COUNT){
+        check_light = true;
+        lightsensor_counter = 0;
     }
 
-    if (npk_counter == 2){ // Counter value * 2 second timer = time interval to check NPK
+    if (moisture_counter == MOISTURE_COUNT){
+        check_moisture = true;
+        moisture_counter = 0;
+    }
+
+    if (npk_counter == NPK_COUNT){ // Counter value * 2 second timer = time interval to check NPK
         check_npk = true;
         npk_counter = 0;
     }
 
-    if (humidity_counter == 2){
+    if (humidity_counter == HUMIDITY_COUNT){
         check_humidity = true;
         humidity_counter = 0;
     }
@@ -334,6 +365,6 @@ ISR(USART_RX_vect) // Interrupt when a byte enters the UDR0 register
     }
 }
 
-ISR(PCINT2_vect){
-    changed = 1;
-}
+// ISR(PCINT2_vect){
+//     changed = 1;
+// }
