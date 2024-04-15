@@ -47,12 +47,12 @@
 #include "i2c.h"
 #include "light_sensor.h"
 
-// Macros for how often to check sensors. 
+// How often to check sensors. 
 // Timer interrupts every 2 seconds, so all count values are multiplied by 2 seconds.
 #define MOISTURE_COUNT 2 
 #define HUMIDITY_COUNT 2
-#define NPK_COUNT      2
-#define LIGHT_COUNT    1
+#define      NPK_COUNT 2
+#define    LIGHT_COUNT 1
 
 #define BDIV (F_CPU / 100000 - 16) / 2 + 1    // Puts I2C rate just below 100kHz
 #define LIGHTSENSOR_ADDR 0x29
@@ -90,16 +90,8 @@ volatile unsigned char moisture = 0;
 //     uint8_t num_pumps;
 // } user_struct;
  
-// Set by user via rotary encoder
-enum PLANT_NEEDS{
-    TROPICAL,  // Humid, sunny
-    DESERT,    // Dry, sunny
-    TEMPERATE, // Humid, low light 
-    ALPINE     // Dry, moderate light
-};
 
-enum LIGHT_LEVELS{LOW, MODERATE,HIGH};
-enum WATER_LEVELS{DRY,HUMID};
+
 
 int main(void) {    
     sei(); // Enable Global Interrupts
@@ -114,7 +106,8 @@ int main(void) {
     init_soilmoisture();
     // End initialization
 
-    uint8_t i, water_needs, light_needs;
+    uint8_t i;
+    plant_settings needs;
     uint16_t humidity = 0;
 
     enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
@@ -130,64 +123,22 @@ int main(void) {
 
     DDRC |= (1 << PD0);
 
+    uint8_t water_needs, light_needs;
+
     while (1){
         if (check_light){
             check_light = false;
         }
 
         if(encoder_changed) { // Set plant needs based on user input
-            encoder_changed = false;    
-            switch(encoder_new_state){
-                case TROPICAL:
-                    water_needs = HUMID;
-                    light_needs = HIGH;
-                    break;
-                case DESERT:
-                    water_needs = DRY;
-                    light_needs = HIGH;
-                    break;
-                case TEMPERATE:
-                    water_needs = HUMID;
-                    light_needs = LOW;
-                    break;
-                case ALPINE:
-                    water_needs = DRY;
-                    light_needs = MODERATE;
-                    break;
-                default:
-                    water_needs = HUMID;
-                    light_needs = HIGH;
-                    break;
-            }
-
-            // led_select1 = GREEN1;
-            // led_select2 = GREEN2;
-            // sendOutput(led_select1, led_select2, water, fertilizer); 
+            encoder_changed = false;
+            uint16_t water_light = user_input(encoder_new_state);
+            water_needs = (water_light >> 8), light_needs = water_light;
         }
 
         if (check_moisture){
             check_moisture = false;
             moisture = adc_sample(1); // PC1 is channel 1 in ADC mux
-            // if (moisture == 0){
-            //     led_select1 = GREEN1;
-            //     led_select2 = GREEN2;
-            //     sendOutput(led_select1, led_select2, water, fertilizer);
-            // }
-            // else if ((moisture > 0)&&(moisture <= 150)){
-            //     led_select1 = YELLOW1;
-            //     led_select2 = YELLOW2;
-            //     sendOutput(led_select1, led_select2, water, fertilizer);
-            // }
-            // else if ((moisture >150)&&(moisture <= 300)){
-            //     led_select1 = RED1;
-            //     led_select2 = RED2;
-            //     sendOutput(led_select1, led_select2, water, fertilizer);
-            // }
-            // else if ((moisture >300)&&(moisture < 500)){
-            //     led_select1 = RED1;
-            //     led_select2 = GREEN2;
-            //     sendOutput(led_select1, led_select2, water, fertilizer);
-            // }
         }
 
         if(check_humidity){

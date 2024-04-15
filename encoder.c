@@ -27,6 +27,40 @@ void init_encoder(){
     encoder_old_state = encoder_new_state;
 }
 
+// uint8_t user_input(uint8_t en){
+//     return en;
+// }
+
+uint16_t user_input(uint8_t encoder_new_state){
+    uint8_t water_needs, light_needs;
+    uint16_t needs;
+    switch(encoder_new_state){
+        case TROPICAL:
+            water_needs = HUMID;
+            light_needs = HIGH;
+            break;
+        case DESERT:
+            water_needs = DRY;
+            light_needs = HIGH;
+            break;
+        case TEMPERATE:
+            water_needs = HUMID;
+            light_needs = LOW;
+            break;
+        case ALPINE:
+            water_needs = DRY;
+            light_needs = MODERATE;
+            break;
+        default:
+            water_needs = HUMID;
+            light_needs = HIGH;
+            break;
+    }
+
+    needs = (water_needs << 8) | light_needs;
+    return needs;
+}
+
 void encoderEnable(){
     PCMSK1 |= (1 << ENCODERA) + (1 << ENCODERB);
 }
