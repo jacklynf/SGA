@@ -121,7 +121,7 @@ int main(void) {
    
    // Begin i2c communication with light sensor
     uint8_t dev_id = begin_lightsensor();
-    if (dev_id == 0x50){
+    if (dev_id == 0x50){ // Use LEDs to determine response when testing
         led_select1 = GREEN1;
         led_select2 = GREEN2;
         sendOutput(led_select1, led_select2, water, fertilizer);
