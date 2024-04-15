@@ -42,6 +42,7 @@
 #include "interrupt_init.h"
 #include "npk.h"
 #include "humidity.h"
+#include "soil_moisture.h"
 
 
 // Volatile variables for interrupts
@@ -57,11 +58,16 @@ volatile _Bool fertilizer = false; // Initialize fertilizer pump to off
 // Grow light variables
 volatile _Bool grow_light = false; // Initialize grow light to off
 
-// Humidity and water variables
+// Humidity variables
 volatile _Bool water = false; // Initialize water pump to off
 volatile uint8_t water_complete = true; // Water flags
 volatile uint8_t humidity_counter = 0; // Humidity interrupt counter
 volatile uint8_t check_humidity = 0; // Humidity flag
+
+// Soil moisture variables
+volatile uint8_t check_moisture = 0; // Soil moisture flag
+volatile uint8_t moisture_counter = 0; // Soil moisture interrupt counter
+volatile unsigned char moisture = 0;
 
 
 ///////////////  End volatile variables
@@ -90,12 +96,12 @@ int main(void) {
     init_timer();
     init_reg();
     init_npk();
-    // init_humidity();
-    begin();
+    init_humidity();
+    init_sm();
     // End initialization
 
     uint8_t water_needs, light_needs;
-    uint64_t humidity = 0;
+    uint16_t humidity = 0;
     enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
     // _Bool wat_fert_needed[NUM_PUMPS] = {false,false};
     // pumps_struct pump_states = {.wat_fert_needed = {false,false}, .num_pumps = 2}; // Assign pointer to initial pump states and number of pumps
@@ -134,74 +140,65 @@ int main(void) {
             // sendOutput(led_select1, led_select2, water, fertilizer); // this won't stay here, just for testing encoder & shift reg
         }
 
-        if (changed){
-            changed = 0;
-            // led_select1 = GREEN1;
-            // led_select2 = RED2;
-            // sendOutput(led_select1, led_select2, water, fertilizer);
-        }
-                // led_select1 = GREEN1;
-                // led_select2 = GREEN2;
-                // sendOutput(led_select1, led_select2, water, fertilizer);
-
-        if(check_humidity){
-            check_humidity = false;
-            // cli();
-            update;
-
-            humidity = get_humidity();
-            // sei();
-
-            // if (humidity > 10000){
+        if (check_moisture){
+            check_moisture = false;
+            moisture = adc_sample(1); // PC1 is channel 1 in ADC mux
+            // if (moisture == 0){
             //     led_select1 = GREEN1;
             //     led_select2 = GREEN2;
             //     sendOutput(led_select1, led_select2, water, fertilizer);
             // }
-            if ((humidity > 50)){
-                led_select1 = RED1;
-                led_select2 = RED2;
-                sendOutput(led_select1, led_select2, water, fertilizer);
-            }
-            else if ((humidity >0) &&(humidity <= 50)){
-                led_select1 = YELLOW1;
-                led_select2 = YELLOW2;
-                sendOutput(led_select1, led_select2, water, fertilizer);
-            }
-            else if (humidity == 0){
-                led_select1 = RED1;
-                led_select2 = GREEN2;
-                // led_select1 = led_select1 + 1;
-                // led_select2 = led_select2 + 1;
-                // if (led_select1 > GREEN1)
-                //     led_select1 = RED1;
-                // if (led_select2 > GREEN2)
-                //     led_select2 = RED2;
-                sendOutput(led_select1, led_select2, water, fertilizer);
-            }
-            else{
-                led_select1 = GREEN1;
-                led_select2 = GREEN2;
-                sendOutput(led_select1, led_select2, water, fertilizer);
-            }
-            // if (humidity == 2){
+            // else if ((moisture > 0)&&(moisture <= 150)){
             //     led_select1 = YELLOW1;
-            //         led_select2 = YELLOW2;
-            //         sendOutput(led_select1, led_select2, water, fertilizer);
+            //     led_select2 = YELLOW2;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
             // }
-            // int k, m = 0;
-            // for (k = humidity/10; k < humidity; k+10){
-            //     // if (m%2 == 0)
-            //     //     PORTC &= ~(1<<PC0);
-            //     // if (m%2 == 1)
-            //     //     PORTC |= (1 << PC0);
-            //     m++;
-            //     _delay_ms(300);
-            //     if (humidity > 100){
-            //         led_select1 = GREEN1;
-            //         led_select2 = RED2;
-            //         sendOutput(led_select1, led_select2, water, fertilizer);
-            //     }  
-            // } 
+            // else if ((moisture >150)&&(moisture <= 300)){
+            //     led_select1 = RED1;
+            //     led_select2 = RED2;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
+            // }
+            // else if ((moisture >300)&&(moisture < 500)){
+            //     led_select1 = RED1;
+            //     led_select2 = GREEN2;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
+            // }
+        }
+
+        if(check_humidity){
+            check_humidity = false;
+            // if (update_humidity()){
+            //     _delay_ms(1);
+            //     humidity = get_humidity() >> 8; // Integer value is in left-most 8bits of humidity variable
+            // }
+            // else 
+            //     humidity = 999; // update did not work
+
+            // if (humidity == 999){
+            //     led_select1 = RED1;
+            //     led_select2 = GREEN2;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
+            // }
+            // else if (humidity == 0){
+            //     led_select1 = RED1;
+            //     led_select2 = YELLOW2;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
+            // }
+            // else if ((humidity >0) &&(humidity <= 50)){
+            //     led_select1 = RED1;
+            //     led_select2 = RED2;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
+            // }
+            // else if ((humidity >50) && (humidity < 100)){ 
+            //     led_select1 = YELLOW1;
+            //     led_select2 = GREEN2;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
+            // }            
+            // else{
+            //     led_select1 = GREEN1;
+            //     led_select2 = GREEN2;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
+            // }            
         }
 
         if (check_npk){
@@ -285,8 +282,14 @@ ISR (TIMER1_COMPA_vect) {
 
     npk_counter++; 
     humidity_counter++;
+    moisture_counter++;
 
-    if (npk_counter == 1){ // Counter value * 2 second timer = time interval to check NPK
+    if (moisture_counter == 2){
+        check_moisture = true;
+        moisture_counter = 1;
+    }
+
+    if (npk_counter == 2){ // Counter value * 2 second timer = time interval to check NPK
         check_npk = true;
         npk_counter = 0;
     }
@@ -314,26 +317,6 @@ ISR (TIMER1_COMPA_vect) {
         PORTC |= 1<<PC0;
         test_flag=1;
     }
-
-
-    /*
-    This interrupt is empty for now but has been tested. Currently interrupting every 5 seconds.
-    This timer will eventually do:
-        Check water levels & fertilizer levels
-        Update water level & fertilizer level variables
-        Check humidity in air & moisture in soil
-        Update humidity & moisture variables
-        Check NPK in soil
-        Update NPK variable(s)
-        Check sunlight
-        update sun variable
-    After returning from this timer, the main function will loop over:
-        calculateSoilNeeds() to determine if water or fertilizer is needed, updating water_on and fertilizer_on as needed
-        calculateSunNeeds() to determine if grow lamp is needed
-        sendOutput() to update LEDs, turn water/fertilizer on
-        growLamp() to turn on/off grow lamp
-    Possibly different values can be used for timer. Maybe check water levels every 1 minute and check sun every 30 seconds? etc.
-    */
 
 }
 
