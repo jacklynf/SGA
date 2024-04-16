@@ -10,7 +10,7 @@
 // micros() method adapted from Arduino with help from:
 // // https://garretlab.web.fc2.com/en/arduino/inside/hardware/arduino/avr/cores/arduino/wiring.c/micros.html
 
-// Begin macros and variables for micros() function
+// Begin variables for micros() function
 #define MICROSECONDS_PER_TIMER0_OVERFLOW (clockCyclesToMicroseconds(64 * 256))
 #define MILLIS_INC (MICROSECONDS_PER_TIMER0_OVERFLOW / 1000)
 #define FRACT_INC ((MICROSECONDS_PER_TIMER0_OVERFLOW % 1000) >> 3)
@@ -20,11 +20,15 @@
 #define microsecondsToClockCycles(a) ( (a) * clockCyclesPerMicrosecond() )
 
 #define MAX_TIMEOUT UINT_MAX
+#define LOW         0
+#define HIGH        1
  
 volatile unsigned long timer0_overflow_count = 0;
 volatile unsigned long timer0_millis = 0;
 static unsigned char timer0_fract = 0;
-// End micros() function macros and variables
+// End micros() function variables
+
+unsigned int counter = 0;
 
 void init_humidity(){
     _dataPin = (1 << PD3);
@@ -38,11 +42,11 @@ uint16_t get_humidity(){
 }
 
 uint8_t update_humidity(){
-    int i;
-    const int LOW =0, HIGH =1;
+    int i, j;
     unsigned long marks[41] = {0};
     unsigned long stops[40] = {0};
     unsigned int highTime, lowTime;
+    unsigned int high_time[40] = {0};
     char dataBytes[5] = {0};
 
     cli();
@@ -73,35 +77,47 @@ uint8_t update_humidity(){
     {
         if (!waitForRHT(LOW, MAX_TIMEOUT))
             return errorExit(0);
-        marks[i] = micros();    
+        // marks[i] = micros();
         if (!waitForRHT(HIGH, MAX_TIMEOUT)) 
             return errorExit(0);
-        stops[i] = micros();
+        high_time[i] = counter;
+        counter = 0;
+        // stops[i] = micros();
     }
     if (!waitForRHT(LOW, MAX_TIMEOUT))
         return errorExit(0);
-    marks[16] = micros();
+    // marks[16] = micros();
     sei();
     
     
-    for (i = 0; i < 40; i++)
-    {
-        lowTime = stops[i] - marks[i];
-        highTime = marks[i + 1] - stops[i];
-        if (highTime > lowTime)
-        {
-            dataBytes[i / 8] |= (1 << (7 - i % 8));
-        }
+    // for (i = 0; i < 40; i++)
+    // {
+    //     lowTime = stops[i] - marks[i];
+    //     highTime = marks[i + 1] - stops[i];
+    //     if (highTime > lowTime)
+    //     {
+    //         dataBytes[i / 8] |= (1 << (7 - i % 8));
+    //     }
+    // }
+    uint8_t val;
+    for (i = 0, j = 7; i < 8, j >= 0; i++, j--){
+        if ((high_time[i] > 25)&&(high_time[i] < 35))
+            val = 0;
+        else if ((high_time[i] > 65)&&(high_time[i] < 75))
+            val = 1;
+        _humidity = _humidity | (val << j);
     }
 
-    if (checksum(dataBytes[CHECKSUM], dataBytes, 4))
-    {
-        _humidity = ((uint16_t)dataBytes[HUMIDITY_H] << 8) | dataBytes[HUMIDITY_L];
+    return 1;
 
-        // end of mod
-        return 1;
-    }
-    return 0;
+    // if (checksum(dataBytes[CHECKSUM], dataBytes, 4))
+    // {
+    //     // _humidity = ((uint16_t)dataBytes[HUMIDITY_H] << 8) | dataBytes[HUMIDITY_L];
+
+    //     // end of mod
+    //     return 1;
+    // }
+    // return 0;
 }
 
 _Bool checksum(char check, char *data, unsigned int datalen)
@@ -126,9 +142,12 @@ uint8_t errorExit(int code)
 
 _Bool waitForRHT(int pinState, unsigned int timeout)
 {
-    unsigned int counter = 0;
+    
     while (((PIND & (1 << PD3)) != pinState) && (counter++ < timeout))
         _delay_us(1);
+
+    if (pinState  == LOW) // Reset counter before high signal
+        counter = 0; 
 
     if (counter >= timeout)
         return false;
