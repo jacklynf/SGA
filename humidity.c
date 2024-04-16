@@ -18,6 +18,8 @@
 #define clockCyclesPerMicrosecond() ( F_CPU / 1000000L )
 #define clockCyclesToMicroseconds(a) ( (a) / clockCyclesPerMicrosecond() )
 #define microsecondsToClockCycles(a) ( (a) * clockCyclesPerMicrosecond() )
+
+#define MAX_TIMEOUT UINT_MAX
  
 volatile unsigned long timer0_overflow_count = 0;
 volatile unsigned long timer0_millis = 0;
@@ -37,53 +39,52 @@ uint16_t get_humidity(){
 
 uint8_t update_humidity(){
     int i;
-    // const unsigned int MAX_TIMEOUT = UINT_MAX; // no timeouts occur with this value but it takes too long, need scope 
     const int LOW =0, HIGH =1;
     unsigned long marks[41] = {0};
     unsigned long stops[40] = {0};
     unsigned int highTime, lowTime;
     char dataBytes[5] = {0};
+
     cli();
 
     // Begin state: input HIGH
     DDRD &= ~(1 << PD3); // Set PD3 as input
     PORTD |= (1 << PD3); // Enable pullup
     _delay_ms(100);
-    // Start signal: host sets data low, waits 1 ms, then pulls back up, wait 20-40us
+    // Start signal: host sets data low, waits 500us, then pulls back up, wait 20-40us
     DDRD |= (1 << PD3); // Set PD3 as output
     PORTD &= ~(1 << PD3); // Send PD3 low
-    _delay_ms(2); // Wait 1 ms minimum
+    _delay_us(500); // Wait 500us minimum
     DDRD &= ~(1 << PD3); 
     PORTD |= (1 << PD3); 
     _delay_us(20);
     // Sensor should pull data pin low 80us, then pull back up
-    if (!waitForRHT(LOW, 1000))
+    if (!waitForRHT(LOW, MAX_TIMEOUT))
         return errorExit(0);
-    if (!waitForRHT(HIGH, 1000))
+    if (!waitForRHT(HIGH, MAX_TIMEOUT))
         return errorExit(0);
 
     // Sensor transmits 40 bytes (16 rh, 16 temp, 8 checksum)
     // Each byte starts with a ~50us LOW then a HIGH pulse. The duration of the
-    // HIGH pulse determi3.nes the value of the bit.
-    // LOW: 26-28us (<LOW duration)
-    // HIGH: 70us (>LOW duration)
+    // HIGH pulse determines the value of the bit.
+    // If the duration of the received high signal is between 26-28us, the bit is 0
+    // If the duration of the received high signal is 70us, the bit is 1
     for (i = 0; i < 40; i++)
     {
-        if (!waitForRHT(LOW, 1000))
+        if (!waitForRHT(LOW, MAX_TIMEOUT))
             return errorExit(0);
-        marks[i] = micros();
-        if (!waitForRHT(HIGH, 1000))
+        marks[i] = micros();    
+        if (!waitForRHT(HIGH, MAX_TIMEOUT)) 
             return errorExit(0);
         stops[i] = micros();
     }
-    if (!waitForRHT(LOW, 1000))
-        return errorExit(-0);
-    marks[40] = micros();
-
+    if (!waitForRHT(LOW, MAX_TIMEOUT))
+        return errorExit(0);
+    marks[16] = micros();
     sei();
-
     
-    for (i = 0; i < 40; i++)
+    
+    for (i = 0; i < 40; i+2)
     {
         lowTime = stops[i] - marks[i];
         highTime = marks[i + 1] - stops[i];
