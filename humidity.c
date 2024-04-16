@@ -84,7 +84,7 @@ uint8_t update_humidity(){
     sei();
     
     
-    for (i = 0; i < 40; i+2)
+    for (i = 0; i < 40; i++)
     {
         lowTime = stops[i] - marks[i];
         highTime = marks[i + 1] - stops[i];
