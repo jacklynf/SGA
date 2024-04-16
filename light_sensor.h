@@ -122,6 +122,7 @@ typedef enum {
   TSL2591_GAIN_MAX = 0x30,  /// max gain (9876x)
 } tsl2591Gain_t;
 
+uint8_t configure_lightsensor();
 uint16_t enable_lightsensor();
 uint8_t begin_lightsensor();
 
