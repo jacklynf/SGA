@@ -100,7 +100,7 @@ uint8_t update_humidity(){
     //     }
     // }
     uint8_t val;
-    for (i = 0, j = 7; i < 8, j >= 0; i++, j--){
+    for (i = 0, j = 7; i < 8, j >= 0; i++, j--){ // Only need the first 8 values for humidity integer value
         if ((high_time[i] > 25)&&(high_time[i] < 35))
             val = 0;
         else if ((high_time[i] > 65)&&(high_time[i] < 75))
