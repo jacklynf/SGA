@@ -105,6 +105,8 @@ uint8_t update_humidity(){
             val = 0;
         else if ((high_time[i] > 65)&&(high_time[i] < 75))
             val = 1;
+        else
+            return 0; // If value is outside of these boundaries, something didn't go right
         _humidity = _humidity | (val << j);
     }
 
