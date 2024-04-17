@@ -1,17 +1,17 @@
 #include "LCD.h"
 
 //LCD Variables
-extern int16_t _width;       ///< Display width as modified by current rotation
-extern int16_t _height;      ///< Display height as modified by current rotation
-extern int16_t cursor_x;     ///< x location to start print()ing text
-extern int16_t cursor_y;     ///< y location to start print()ing text
-extern uint16_t textcolor;   ///< 16-bit background color for print()
-extern uint16_t textbgcolor; ///< 16-bit text color for print()
-extern uint8_t textsize_x;   ///< Desired magnification in X-axis of text to print()
-extern uint8_t textsize_y;   ///< Desired magnification in Y-axis of text to print()
-extern uint8_t rotation;     ///< Display rotation (0 thru 3)
-extern bool wrap;            ///< If set, 'wrap' text at right edge of display
-extern bool _cp437;          ///< If set, use correct CP437 charset (default is off)
+int16_t _width;       ///< Display width as modified by current rotation
+int16_t _height;      ///< Display height as modified by current rotation
+int16_t cursor_x;     ///< x location to start print()ing text
+int16_t cursor_y;     ///< y location to start print()ing text
+uint16_t textcolor;   ///< 16-bit background color for print()
+uint16_t textbgcolor; ///< 16-bit text color for print()
+uint8_t textsize_x;   ///< Desired magnification in X-axis of text to print()
+uint8_t textsize_y;   ///< Desired magnification in Y-axis of text to print()
+uint8_t rotation;     ///< Display rotation (0 thru 3)
+bool wrap;            ///< If set, 'wrap' text at right edge of display
+bool _cp437;          ///< If set, use correct CP437 charset (default is off)
 //GFXfont *gfxFont;     ///< Pointer to special font
 
 
