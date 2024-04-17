@@ -284,3 +284,18 @@ void writeColor(uint16_t color, uint32_t len) {
 
     }
 }
+
+/*!
+    @brief   Read a single 8-bit value from the display. Chip-select and
+             transaction must have been previously set -- this ONLY reads
+             the byte. This is another of those functions in the library
+             with a now-not-accurate name that's being maintained for
+             compatibility with outside code. This function is used even if
+             display connection is parallel.
+    @return  Unsigned 8-bit value read (always zero if USE_FAST_PINIO is
+             not supported by the MCU architecture).
+*/
+uint8_t spiRead(void) {
+    SPDR = ((uint8_t)0);
+    return SPDR;
+}
