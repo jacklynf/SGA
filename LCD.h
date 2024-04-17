@@ -36,7 +36,7 @@ extern bool _cp437;          ///< If set, use correct CP437 charset (default is 
 //GFXfont *gfxFont;     ///< Pointer to special font
 
 //Functions
- void LCD_Initialize() //Setup DDR and PORT registers for SPI and more and send appropiate commands to initalize LCD
+ void LCD_Initialize(void); //Setup DDR and PORT registers for SPI and more and send appropiate commands to initalize LCD
  
  /*!
  @brief   TRANSLATED FROM Adafruit_SPITFT sendCommand()
@@ -53,6 +53,106 @@ void sendCommandAndData(uint8_t commandByte, uint8_t *dataBytes, uint8_t numData
  data
  @param   commandByte       The Command Byte
  */
-void sendCommand(uint8_t commandByte)
+void sendCommand(uint8_t commandByte);
+
+/*!
+    @brief  Call before issuing command(s) or data to display. Performs
+            chip-select (if required) and starts an SPI transaction (if
+            using hardware SPI and transactions are supported). Required
+            for all display types; not an SPI-specific function.
+*/
+uint8_t readcommand8(uint8_t commandByte, uint8_t index = 0);
+
+/*!
+    @brief  Call before issuing command(s) or data to display. Performs
+            chip-select (if required) and starts an SPI transaction (if
+            using hardware SPI and transactions are supported). Required
+            for all display types; not an SPI-specific function.
+*/
+inline void startWrite(void);
+
+
+/*!
+    @brief  Call after issuing command(s) or data to display. Performs
+            chip-deselect (if required) and ends an SPI transaction (if
+            using hardware SPI and transactions are supported). Required
+            for all display types; not an SPI-specific function.
+*/
+inline void endWrite(void);
+
+/*!
+    @brief  Write a single command byte to the display. Chip-select and
+            transaction must have been previously set -- this ONLY sets
+            the device to COMMAND mode, issues the byte and then restores
+            DATA mode. There is no corresponding explicit writeData()
+            function -- just use spiWrite().
+    @param  cmd  8-bit command to write.
+*/
+inline void Adafruit_SPITFT::writeCommand(uint8_t cmd);
+
+/*!
+    @brief  Issue a single 16-bit value to the display. Chip-select,
+            transaction and data/command selection must have been
+            previously set -- this ONLY issues the word. Despite the name,
+            this function is used even if display connection is parallel;
+            name was maintaned for backward compatibility. Naming is also
+            not consistent with the 8-bit version, spiWrite(). Sorry about
+            that. Again, staying compatible with outside code.
+    @param  w  16-bit value to write.
+*/
+inline void SPI_WRITE16(uint16_t w) 
+
+/*!
+    @brief  Draw a filled rectangle to the display. Self-contained and
+            provides its own transaction as needed (see writeFillRect() or
+            writeFillRectPreclipped() for lower-level variants). Edge
+            clipping and rejection is performed here.
+    @param  x      Horizontal position of first corner.
+    @param  y      Vertical position of first corner.
+    @param  w      Rectangle width in pixels (positive = right of first
+                   corner, negative = left of first corner).
+    @param  h      Rectangle height in pixels (positive = below first
+                   corner, negative = above first corner).
+    @param  color  16-bit fill color in '565' RGB format.
+    @note   This repeats the writeFillRect() function almost in its entirety,
+            with the addition of a transaction start/end. It's done this way
+            (rather than starting the transaction and calling writeFillRect()
+            to handle clipping and so forth) so that the transaction isn't
+            performed at all if the rectangle is rejected. It's really not
+            that much code.
+*/
+void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+
+inline void setAddrWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+
+/*!
+    @brief  A lower-level version of writeFillRect(). This version requires
+            all inputs are in-bounds, that width and height are positive,
+            and no part extends offscreen. NO EDGE CLIPPING OR REJECTION IS
+            PERFORMED. If higher-level graphics primitives are written to
+            handle their own clipping earlier in the drawing process, this
+            can avoid unnecessary function calls and repeated clipping
+            operations in the lower-level functions.
+    @param  x      Horizontal position of first corner. MUST BE WITHIN
+                   SCREEN BOUNDS.
+    @param  y      Vertical position of first corner. MUST BE WITHIN SCREEN
+                   BOUNDS.
+    @param  w      Rectangle width in pixels. MUST BE POSITIVE AND NOT
+                   EXTEND OFF SCREEN.
+    @param  h      Rectangle height in pixels. MUST BE POSITIVE AND NOT
+                   EXTEND OFF SCREEN.
+    @param  color  16-bit fill color in '565' RGB format.
+    @note   This is a new function, no graphics primitives besides rects
+            and horizontal/vertical lines are written to best use this yet.
+*/
+inline void writeFillRectPreclipped(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+
+/*!
+    @brief  Issue a series of pixels, all the same color. Not self-
+            contained; should follow startWrite() and setAddrWindow() calls.
+    @param  color  16-bit pixel color in '565' RGB format.
+    @param  len    Number of pixels to draw.
+*/
+void writeColor(uint16_t color, uint32_t len);
 
 #endif  //LCD_H

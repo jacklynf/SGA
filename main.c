@@ -44,6 +44,9 @@
 #include "humidity.h"
 #include "soil_moisture.h"
 
+#include "LCD.h"
+#include "LCD_GFX.h"
+#include "LCD_Macros.h"
 
 // Volatile variables for interrupts
 volatile int test_flag=0;
@@ -98,6 +101,8 @@ int main(void) {
     init_npk();
     init_humidity();
     init_sm();
+
+    LCD_Initialize();
     // End initialization
 
     uint8_t water_needs, light_needs;
@@ -139,6 +144,8 @@ int main(void) {
             // led_select2 = GREEN2;
             // sendOutput(led_select1, led_select2, water, fertilizer); // this won't stay here, just for testing encoder & shift reg
         }
+
+        fillScreen(ILI9341_DARKGREEN);
 
         if (check_moisture){
             check_moisture = false;
