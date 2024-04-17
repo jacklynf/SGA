@@ -2,8 +2,8 @@
 #define LCD_Macros
 
 //From Adafruit_GFX
-#define WIDTH = 240;        ///< This is the 'raw' display width - never changes
-#define  HEIGHT = 320;       ///< This is the 'raw' display height - never changes
+#define WIDTH 240        ///< This is the 'raw' display width - never changes
+#define  HEIGHT 320       ///< This is the 'raw' display height - never changes
 
 //LCD Instructions:
 #define ILI9341_NOP 0x00     ///< No-op register

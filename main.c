@@ -115,6 +115,9 @@ int main(void) {
     
 
     while (1){
+
+        //fillScreen(ILI9341_DARKGREEN);
+        
         if(encoder_changed) { // Set plant needs based on user input
             encoder_changed = false;    
             switch(encoder_new_state){
@@ -145,7 +148,7 @@ int main(void) {
             // sendOutput(led_select1, led_select2, water, fertilizer); // this won't stay here, just for testing encoder & shift reg
         }
 
-        fillScreen(ILI9341_DARKGREEN);
+    
 
         if (check_moisture){
             check_moisture = false;

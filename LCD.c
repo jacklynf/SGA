@@ -1,5 +1,19 @@
 #include "LCD.h"
 
+//LCD Variables
+extern int16_t _width;       ///< Display width as modified by current rotation
+extern int16_t _height;      ///< Display height as modified by current rotation
+extern int16_t cursor_x;     ///< x location to start print()ing text
+extern int16_t cursor_y;     ///< y location to start print()ing text
+extern uint16_t textcolor;   ///< 16-bit background color for print()
+extern uint16_t textbgcolor; ///< 16-bit text color for print()
+extern uint8_t textsize_x;   ///< Desired magnification in X-axis of text to print()
+extern uint8_t textsize_y;   ///< Desired magnification in Y-axis of text to print()
+extern uint8_t rotation;     ///< Display rotation (0 thru 3)
+extern bool wrap;            ///< If set, 'wrap' text at right edge of display
+extern bool _cp437;          ///< If set, use correct CP437 charset (default is off)
+//GFXfont *gfxFont;     ///< Pointer to special font
+
 
 //LCD Memory Initialization Command Sequence
 const uint8_t PROGMEM initcmd[] = {
@@ -41,7 +55,7 @@ void LCD_Initialize() {
     textcolor = textbgcolor = 0xFFFF;
     wrap = true;
     _cp437 = false;
-    gfxFont = NULL;
+    //gfxFont = NULL;
     //End segment from Adafruit_GFX() function
 
     //Begin code translated from Adafruit_ILI9341.begin()
@@ -68,7 +82,7 @@ void LCD_Initialize() {
     while ((cmd = pgm_read_byte(addr++)) > 0) { //Loop through the entire array of commands
         x = pgm_read_byte(addr++);
         numArgs = x & 0x7F;
-        sendCommand(cmd, addr, numArgs);    //Write each data byte
+        sendCommandAndData(cmd, addr, numArgs);    //Write each data byte
         addr += numArgs;
         if (x & 0x80)
             _delay_ms(150);
@@ -149,62 +163,6 @@ uint8_t readcommand8(uint8_t commandByte, uint8_t index) {
   return result;
 }
 
-/*!
-    @brief  Call before issuing command(s) or data to display. Performs
-            chip-select (if required) and starts an SPI transaction (if
-            using hardware SPI and transactions are supported). Required
-            for all display types; not an SPI-specific function.
-*/
-inline void startWrite(void) {
-  //SPI_BEGIN_TRANSACTION();
-  cli(); //Disable interrupts while SPI Command is being sent
-  PORTB &= ~(CS); //Set CS and pin Low (Select Slave)
-}
-
-/*!
-    @brief  Call after issuing command(s) or data to display. Performs
-            chip-deselect (if required) and ends an SPI transaction (if
-            using hardware SPI and transactions are supported). Required
-            for all display types; not an SPI-specific function.
-*/
-inline void endWrite(void) {
-  PORTB |= (CS); //Set CS and pin High (Deselect Slave)
-  sei(); //Re-enable interrupts after SPI Command is done being sent
-  //SPI_END_TRANSACTION();
-}
-
-/*!
-    @brief  Write a single command byte to the display. Chip-select and
-            transaction must have been previously set -- this ONLY sets
-            the device to COMMAND mode, issues the byte and then restores
-            DATA mode. There is no corresponding explicit writeData()
-            function -- just use spiWrite().
-    @param  cmd  8-bit command to write.
-*/
-inline void writeCommand(uint8_t cmd) {
-  PORTB &= ~(DC);
-  SPIWRITE(cmd);
-  PORTB |= (~DC);
-}
-
-/*!
-    @brief  Issue a single 16-bit value to the display. Chip-select,
-            transaction and data/command selection must have been
-            previously set -- this ONLY issues the word. Despite the name,
-            this function is used even if display connection is parallel;
-            name was maintaned for backward compatibility. Naming is also
-            not consistent with the 8-bit version, spiWrite(). Sorry about
-            that. Again, staying compatible with outside code.
-    @param  w  16-bit value to write.
-*/
-inline void SPI_WRITE16(uint16_t w) {
-    SPIWRITE(w >> 8);
-    SPIWRITE(w);
-}
-
-
-
-
 
 
 
@@ -271,30 +229,6 @@ void fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
   }
 }
 
-/*!
-    @brief  A lower-level version of writeFillRect(). This version requires
-            all inputs are in-bounds, that width and height are positive,
-            and no part extends offscreen. NO EDGE CLIPPING OR REJECTION IS
-            PERFORMED. If higher-level graphics primitives are written to
-            handle their own clipping earlier in the drawing process, this
-            can avoid unnecessary function calls and repeated clipping
-            operations in the lower-level functions.
-    @param  x      Horizontal position of first corner. MUST BE WITHIN
-                   SCREEN BOUNDS.
-    @param  y      Vertical position of first corner. MUST BE WITHIN SCREEN
-                   BOUNDS.
-    @param  w      Rectangle width in pixels. MUST BE POSITIVE AND NOT
-                   EXTEND OFF SCREEN.
-    @param  h      Rectangle height in pixels. MUST BE POSITIVE AND NOT
-                   EXTEND OFF SCREEN.
-    @param  color  16-bit fill color in '565' RGB format.
-    @note   This is a new function, no graphics primitives besides rects
-            and horizontal/vertical lines are written to best use this yet.
-*/
-inline void writeFillRectPreclipped(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
-  setAddrWindow(x, y, w, h);
-  writeColor(color, (uint32_t)w * h);
-}
 
 /**************************************************************************/
 /*!

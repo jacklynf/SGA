@@ -10,30 +10,20 @@
 
 #include "LCD_Macros.h"
 
-#define SPCR_BITS (1 << SPE) | (1 << MSTR) //SPE==1 (Enable SPI Operation), DORD==0 (DataOrder is MSBFIRST), MSTR==1 (Select Master Mode), SPR1 = SPR0 = 0 (SPICLK = f/2)
+#define SPCR_BITS ((1 << SPE) | (1 << MSTR)) //SPE==1 (Enable SPI Operation), DORD==0 (DataOrder is MSBFIRST), MSTR==1 (Select Master Mode), SPR1 = SPR0 = 0 (SPICLK = f/2)
 #define SPSR_BITS (1 << SPR2X)  //Set SPI Frequency to CLOCK/2
 #define ILI9341_TFTWIDTH 240  ///< ILI9341 max TFT width
 #define ILI9341_TFTHEIGHT 320 ///< ILI9341 max TFT height
-#define DC (1 << PB1);
-#define CS (1 << PB2);
+#define DC (1 << PB1)
+#define CS (1 << PB2)
 #define SPIWRITE(data) for (SPDR = (data); (!(SPSR & (1 << SPIF)));) //Macro to send SPI command, and wait for SPIF register to set, indicating transfer is finished
+#define SCK PB5
+#define MISO PB4
+#define MOSI PB3
 
 //LCD Memory Initialization Command Sequence
-extern const uint8_t PROGMEM initcmd[]
+extern const uint8_t PROGMEM initcmd[];
 
-//LCD Variables
-extern int16_t _width;       ///< Display width as modified by current rotation
-extern int16_t _height;      ///< Display height as modified by current rotation
-extern int16_t cursor_x;     ///< x location to start print()ing text
-extern int16_t cursor_y;     ///< y location to start print()ing text
-extern uint16_t textcolor;   ///< 16-bit background color for print()
-extern uint16_t textbgcolor; ///< 16-bit text color for print()
-extern uint8_t textsize_x;   ///< Desired magnification in X-axis of text to print()
-extern uint8_t textsize_y;   ///< Desired magnification in Y-axis of text to print()
-extern uint8_t rotation;     ///< Display rotation (0 thru 3)
-extern bool wrap;            ///< If set, 'wrap' text at right edge of display
-extern bool _cp437;          ///< If set, use correct CP437 charset (default is off)
-//GFXfont *gfxFont;     ///< Pointer to special font
 
 //Functions
  void LCD_Initialize(void); //Setup DDR and PORT registers for SPI and more and send appropiate commands to initalize LCD
@@ -61,7 +51,7 @@ void sendCommand(uint8_t commandByte);
             using hardware SPI and transactions are supported). Required
             for all display types; not an SPI-specific function.
 */
-uint8_t readcommand8(uint8_t commandByte, uint8_t index = 0);
+uint8_t readcommand8(uint8_t commandByte, uint8_t index);
 
 /*!
     @brief  Call before issuing command(s) or data to display. Performs
@@ -69,7 +59,11 @@ uint8_t readcommand8(uint8_t commandByte, uint8_t index = 0);
             using hardware SPI and transactions are supported). Required
             for all display types; not an SPI-specific function.
 */
-inline void startWrite(void);
+static inline void startWrite(void) {
+  //SPI_BEGIN_TRANSACTION();
+  cli(); //Disable interrupts while SPI Command is being sent
+  PORTB &= ~(CS); //Set CS and pin Low (Select Slave)
+}
 
 
 /*!
@@ -78,7 +72,11 @@ inline void startWrite(void);
             using hardware SPI and transactions are supported). Required
             for all display types; not an SPI-specific function.
 */
-inline void endWrite(void);
+static inline void endWrite(void) {
+  PORTB |= (CS); //Set CS and pin High (Deselect Slave)
+  sei(); //Re-enable interrupts after SPI Command is done being sent
+  //SPI_END_TRANSACTION();
+}
 
 /*!
     @brief  Write a single command byte to the display. Chip-select and
@@ -88,7 +86,11 @@ inline void endWrite(void);
             function -- just use spiWrite().
     @param  cmd  8-bit command to write.
 */
-inline void Adafruit_SPITFT::writeCommand(uint8_t cmd);
+static inline void writeCommand(uint8_t cmd) {
+  PORTB &= ~(DC);
+  SPIWRITE(cmd);
+  PORTB |= (~DC);
+}
 
 /*!
     @brief  Issue a single 16-bit value to the display. Chip-select,
@@ -100,7 +102,11 @@ inline void Adafruit_SPITFT::writeCommand(uint8_t cmd);
             that. Again, staying compatible with outside code.
     @param  w  16-bit value to write.
 */
-inline void SPI_WRITE16(uint16_t w) 
+static inline void SPI_WRITE16(uint16_t w) {
+    SPIWRITE(w >> 8);
+    SPIWRITE(w);
+}
+
 
 /*!
     @brief  Draw a filled rectangle to the display. Self-contained and
@@ -123,7 +129,7 @@ inline void SPI_WRITE16(uint16_t w)
 */
 void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 
-inline void setAddrWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
+void setAddrWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 
 /*!
     @brief  A lower-level version of writeFillRect(). This version requires
@@ -145,7 +151,10 @@ inline void setAddrWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
     @note   This is a new function, no graphics primitives besides rects
             and horizontal/vertical lines are written to best use this yet.
 */
-inline void writeFillRectPreclipped(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
+static inline void writeFillRectPreclipped(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
+  setAddrWindow(x, y, w, h);
+  writeColor(color, (uint32_t)(w * h));
+}
 
 /*!
     @brief  Issue a series of pixels, all the same color. Not self-
