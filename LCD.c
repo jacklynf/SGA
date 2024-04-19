@@ -3,16 +3,17 @@
 //LCD Variables
 int16_t _width;       ///< Display width as modified by current rotation
 int16_t _height;      ///< Display height as modified by current rotation
-int16_t cursor_x;     ///< x location to start print()ing text
-int16_t cursor_y;     ///< y location to start print()ing text
-uint16_t textcolor;   ///< 16-bit background color for print()
-uint16_t textbgcolor; ///< 16-bit text color for print()
-uint8_t textsize_x;   ///< Desired magnification in X-axis of text to print()
-uint8_t textsize_y;   ///< Desired magnification in Y-axis of text to print()
-uint8_t rotation;     ///< Display rotation (0 thru 3)
-bool wrap;            ///< If set, 'wrap' text at right edge of display
-bool _cp437;          ///< If set, use correct CP437 charset (default is off)
+int16_t cursor_x = 0;     ///< x location to start print()ing text
+int16_t cursor_y = 0;     ///< y location to start print()ing text
+uint16_t textcolor = 0xFFFF;   ///< 16-bit background color for print()
+uint16_t textbgcolor = 0xFFFF; ///< 16-bit text color for print()
+uint8_t textsize_x = 1;   ///< Desired magnification in X-axis of text to print()
+uint8_t textsize_y = 1;   ///< Desired magnification in Y-axis of text to print()
+uint8_t rotation = 0;     ///< Display rotation (0 thru 3)
+bool wrap = true;            ///< If set, 'wrap' text at right edge of display
+bool _cp437 = false;          ///< If set, use correct CP437 charset (default is off)
 //GFXfont *gfxFont;     ///< Pointer to special font
+
 
 
 //LCD Memory Initialization Command Sequence
@@ -187,117 +188,3 @@ uint8_t spiRead(void) {
     SPDR = ((uint8_t)0);
     return SPDR;
 }
-
-
-
-
-/*!
-    @brief  Issue a series of pixels, all the same color. Not self-
-            contained; should follow startWrite() and setAddrWindow() calls.
-    @param  color  16-bit pixel color in '565' RGB format.
-    @param  len    Number of pixels to draw.
-*/
-
-// void writeColor(uint16_t color, uint32_t len) {
-
-//   if (!len)
-//     return; // Avoid 0-byte transfers
-
-//   uint8_t hi = color >> 8, lo = color;
-//                       // !ESP32
-
-//   // All other cases (non-DMA hard SPI, bitbang SPI, parallel)...
-//     while (len--) {
-//       SPIWRITE(hi);
-//       SPIWRITE(lo);
-
-//     }
-// }
-
-//Shape Drawing Commands
-/*!
-    @brief  Draw a filled rectangle to the display. Self-contained and
-            provides its own transaction as needed (see writeFillRect() or
-            writeFillRectPreclipped() for lower-level variants). Edge
-            clipping and rejection is performed here.
-    @param  x      Horizontal position of first corner.
-    @param  y      Vertical position of first corner.
-    @param  w      Rectangle width in pixels (positive = right of first
-                   corner, negative = left of first corner).
-    @param  h      Rectangle height in pixels (positive = below first
-                   corner, negative = above first corner).
-    @param  color  16-bit fill color in '565' RGB format.
-    @note   This repeats the writeFillRect() function almost in its entirety,
-            with the addition of a transaction start/end. It's done this way
-            (rather than starting the transaction and calling writeFillRect()
-            to handle clipping and so forth) so that the transaction isn't
-            performed at all if the rectangle is rejected. It's really not
-            that much code.
-*/
-// void fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
-//                                uint16_t color) {
-//   if (w && h) {   // Nonzero width and height?
-//     if (w < 0) {  // If negative width...
-//       x += w + 1; //   Move X to left edge
-//       w = -w;     //   Use positive width
-//     }
-//     if (x < _width) { // Not off right
-//       if (h < 0) {    // If negative height...
-//         y += h + 1;   //   Move Y to top edge
-//         h = -h;       //   Use positive height
-//       }
-//       if (y < _height) { // Not off bottom
-//         int16_t x2 = x + w - 1;
-//         if (x2 >= 0) { // Not off left
-//           int16_t y2 = y + h - 1;
-//           if (y2 >= 0) { // Not off top
-//             // Rectangle partly or fully overlaps screen
-//             if (x < 0) {
-//               x = 0;
-//               w = x2 + 1;
-//             } // Clip left
-//             if (y < 0) {
-//               y = 0;
-//               h = y2 + 1;
-//             } // Clip top
-//             if (x2 >= _width) {
-//               w = _width - x;
-//             } // Clip right
-//             if (y2 >= _height) {
-//               h = _height - y;
-//             } // Clip bottom
-//             startWrite();
-//             writeFillRectPreclipped(x, y, w, h, color);
-//             endWrite();
-//           }
-//         }
-//       }
-//     }
-//   }
-// }
-
-
-/*!
- @brief   Translated from readCommand8() in Adafruit_SPITFT
- @brief   Read 8 bits of data from display configuration memory (not RAM).
- This is highly undocumented/supported and should be avoided,
- function is only included because some of the examples use it.
- @param   commandByte
- The command register to read data from.
- @param   index
- The byte index into the command to read from.
- @return  Unsigned 8-bit data read from display register.
- */
-/**************************************************************************/
-// uint8_t readcommand8(uint8_t commandByte, uint8_t index) {
-//   uint8_t result;
-//   startWrite();
-//   PORTB &= ~(DC); // Command mode
-//   SPIWRITE(commandByte);
-//   PORTB |= (DC); // Data mode
-//   do {
-//     result = spiRead();
-//   } while (index--); // Discard bytes up to index'th
-//   endWrite();
-//   return result;
-// }
