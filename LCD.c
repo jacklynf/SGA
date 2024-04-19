@@ -138,97 +138,6 @@ void sendCommand(uint8_t commandByte) {
     // SPI_END_TRANSACTION();
 }
 
-/*!
- @brief   Translated from readCommand8() in Adafruit_SPITFT
- @brief   Read 8 bits of data from display configuration memory (not RAM).
- This is highly undocumented/supported and should be avoided,
- function is only included because some of the examples use it.
- @param   commandByte
- The command register to read data from.
- @param   index
- The byte index into the command to read from.
- @return  Unsigned 8-bit data read from display register.
- */
-/**************************************************************************/
-uint8_t readcommand8(uint8_t commandByte, uint8_t index) {
-  uint8_t result;
-  startWrite();
-  PORTB &= ~(DC); // Command mode
-  SPIWRITE(commandByte);
-  PORTB |= (DC); // Data mode
-  do {
-    result = spiRead();
-  } while (index--); // Discard bytes up to index'th
-  endWrite();
-  return result;
-}
-
-
-
-
-
-//Shape Drawing Commands
-/*!
-    @brief  Draw a filled rectangle to the display. Self-contained and
-            provides its own transaction as needed (see writeFillRect() or
-            writeFillRectPreclipped() for lower-level variants). Edge
-            clipping and rejection is performed here.
-    @param  x      Horizontal position of first corner.
-    @param  y      Vertical position of first corner.
-    @param  w      Rectangle width in pixels (positive = right of first
-                   corner, negative = left of first corner).
-    @param  h      Rectangle height in pixels (positive = below first
-                   corner, negative = above first corner).
-    @param  color  16-bit fill color in '565' RGB format.
-    @note   This repeats the writeFillRect() function almost in its entirety,
-            with the addition of a transaction start/end. It's done this way
-            (rather than starting the transaction and calling writeFillRect()
-            to handle clipping and so forth) so that the transaction isn't
-            performed at all if the rectangle is rejected. It's really not
-            that much code.
-*/
-void fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
-                               uint16_t color) {
-  if (w && h) {   // Nonzero width and height?
-    if (w < 0) {  // If negative width...
-      x += w + 1; //   Move X to left edge
-      w = -w;     //   Use positive width
-    }
-    if (x < _width) { // Not off right
-      if (h < 0) {    // If negative height...
-        y += h + 1;   //   Move Y to top edge
-        h = -h;       //   Use positive height
-      }
-      if (y < _height) { // Not off bottom
-        int16_t x2 = x + w - 1;
-        if (x2 >= 0) { // Not off left
-          int16_t y2 = y + h - 1;
-          if (y2 >= 0) { // Not off top
-            // Rectangle partly or fully overlaps screen
-            if (x < 0) {
-              x = 0;
-              w = x2 + 1;
-            } // Clip left
-            if (y < 0) {
-              y = 0;
-              h = y2 + 1;
-            } // Clip top
-            if (x2 >= _width) {
-              w = _width - x;
-            } // Clip right
-            if (y2 >= _height) {
-              h = _height - y;
-            } // Clip bottom
-            startWrite();
-            writeFillRectPreclipped(x, y, w, h, color);
-            endWrite();
-          }
-        }
-      }
-    }
-  }
-}
-
 
 /**************************************************************************/
 /*!
@@ -265,28 +174,6 @@ void setAddrWindow(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h) {
 }
 
 /*!
-    @brief  Issue a series of pixels, all the same color. Not self-
-            contained; should follow startWrite() and setAddrWindow() calls.
-    @param  color  16-bit pixel color in '565' RGB format.
-    @param  len    Number of pixels to draw.
-*/
-void writeColor(uint16_t color, uint32_t len) {
-
-  if (!len)
-    return; // Avoid 0-byte transfers
-
-  uint8_t hi = color >> 8, lo = color;
-                      // !ESP32
-
-  // All other cases (non-DMA hard SPI, bitbang SPI, parallel)...
-    while (len--) {
-      SPIWRITE(hi);
-      SPIWRITE(lo);
-
-    }
-}
-
-/*!
     @brief   Read a single 8-bit value from the display. Chip-select and
              transaction must have been previously set -- this ONLY reads
              the byte. This is another of those functions in the library
@@ -300,3 +187,128 @@ uint8_t spiRead(void) {
     SPDR = ((uint8_t)0);
     return SPDR;
 }
+
+/*drawPixel Function*/
+void drawPixel(int16_t x, int16_t y, uint16_t color) {
+    // Clip first...
+    if ((x >= 0) && (x < _width) && (y >= 0) && (y < _height)) {
+        setAddrWindow(x, y, 1, 1);
+        SPI_WRITE16(color);
+    }
+}
+
+
+
+
+
+
+/*!
+    @brief  Issue a series of pixels, all the same color. Not self-
+            contained; should follow startWrite() and setAddrWindow() calls.
+    @param  color  16-bit pixel color in '565' RGB format.
+    @param  len    Number of pixels to draw.
+*/
+
+// void writeColor(uint16_t color, uint32_t len) {
+
+//   if (!len)
+//     return; // Avoid 0-byte transfers
+
+//   uint8_t hi = color >> 8, lo = color;
+//                       // !ESP32
+
+//   // All other cases (non-DMA hard SPI, bitbang SPI, parallel)...
+//     while (len--) {
+//       SPIWRITE(hi);
+//       SPIWRITE(lo);
+
+//     }
+// }
+
+//Shape Drawing Commands
+/*!
+    @brief  Draw a filled rectangle to the display. Self-contained and
+            provides its own transaction as needed (see writeFillRect() or
+            writeFillRectPreclipped() for lower-level variants). Edge
+            clipping and rejection is performed here.
+    @param  x      Horizontal position of first corner.
+    @param  y      Vertical position of first corner.
+    @param  w      Rectangle width in pixels (positive = right of first
+                   corner, negative = left of first corner).
+    @param  h      Rectangle height in pixels (positive = below first
+                   corner, negative = above first corner).
+    @param  color  16-bit fill color in '565' RGB format.
+    @note   This repeats the writeFillRect() function almost in its entirety,
+            with the addition of a transaction start/end. It's done this way
+            (rather than starting the transaction and calling writeFillRect()
+            to handle clipping and so forth) so that the transaction isn't
+            performed at all if the rectangle is rejected. It's really not
+            that much code.
+*/
+// void fillRect(int16_t x, int16_t y, int16_t w, int16_t h,
+//                                uint16_t color) {
+//   if (w && h) {   // Nonzero width and height?
+//     if (w < 0) {  // If negative width...
+//       x += w + 1; //   Move X to left edge
+//       w = -w;     //   Use positive width
+//     }
+//     if (x < _width) { // Not off right
+//       if (h < 0) {    // If negative height...
+//         y += h + 1;   //   Move Y to top edge
+//         h = -h;       //   Use positive height
+//       }
+//       if (y < _height) { // Not off bottom
+//         int16_t x2 = x + w - 1;
+//         if (x2 >= 0) { // Not off left
+//           int16_t y2 = y + h - 1;
+//           if (y2 >= 0) { // Not off top
+//             // Rectangle partly or fully overlaps screen
+//             if (x < 0) {
+//               x = 0;
+//               w = x2 + 1;
+//             } // Clip left
+//             if (y < 0) {
+//               y = 0;
+//               h = y2 + 1;
+//             } // Clip top
+//             if (x2 >= _width) {
+//               w = _width - x;
+//             } // Clip right
+//             if (y2 >= _height) {
+//               h = _height - y;
+//             } // Clip bottom
+//             startWrite();
+//             writeFillRectPreclipped(x, y, w, h, color);
+//             endWrite();
+//           }
+//         }
+//       }
+//     }
+//   }
+// }
+
+
+/*!
+ @brief   Translated from readCommand8() in Adafruit_SPITFT
+ @brief   Read 8 bits of data from display configuration memory (not RAM).
+ This is highly undocumented/supported and should be avoided,
+ function is only included because some of the examples use it.
+ @param   commandByte
+ The command register to read data from.
+ @param   index
+ The byte index into the command to read from.
+ @return  Unsigned 8-bit data read from display register.
+ */
+/**************************************************************************/
+// uint8_t readcommand8(uint8_t commandByte, uint8_t index) {
+//   uint8_t result;
+//   startWrite();
+//   PORTB &= ~(DC); // Command mode
+//   SPIWRITE(commandByte);
+//   PORTB |= (DC); // Data mode
+//   do {
+//     result = spiRead();
+//   } while (index--); // Discard bytes up to index'th
+//   endWrite();
+//   return result;
+// }
