@@ -6,4 +6,6 @@
 
 void fillScreen(uint16_t color);
 
+void setRotation(uint8_t m);
+
 #endif  //LCD_GFX
