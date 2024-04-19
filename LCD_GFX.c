@@ -96,7 +96,7 @@ void drawRGBBitmap(int16_t x, int16_t y, const uint16_t bitmap[],
             performed at all if the rectangle is rejected. It's really not
             that much code.
 */
-void writeFillRect(int16_t x, int16_t y, int16_t w, int16_t h,
+void writefillRect(int16_t x, int16_t y, int16_t w, int16_t h,
                                uint16_t color) {
   if (w && h) {   // Nonzero width and height?
     if (w < 0) {  // If negative width...
@@ -221,7 +221,7 @@ void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
             writeFastVLine() to handle clipping and so forth) so that the
             transaction isn't performed at all if the line is rejected.
 */
-void writeFastVLine(int16_t x, int16_t y, int16_t h,
+void drawFastVLine(int16_t x, int16_t y, int16_t h,
                                     uint16_t color) {
   if ((x >= 0) && (x < _width) && h) { // X on screen, nonzero height
     if (h < 0) {                       // If negative height...
@@ -270,7 +270,7 @@ void writeFastVLine(int16_t x, int16_t y, int16_t h,
             writeFastHLine() to handle clipping and so forth) so that the
             transaction isn't performed at all if the line is rejected.
 */
-void writeFastHLine(int16_t x, int16_t y, int16_t w,
+void drawFastHLine(int16_t x, int16_t y, int16_t w,
                                     uint16_t color) {
   if ((y >= 0) && (y < _height) && w) { // Y on screen, nonzero width
     if (w < 0) {                        // If negative width...

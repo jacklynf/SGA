@@ -10,33 +10,19 @@ void setRotation(uint8_t m);
 
 void drawRGBBitmap(int16_t x, int16_t y, const uint16_t bitmap[], int16_t w, int16_t h);
 
-void writeFillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color); 
+void writefillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color); 
 
-void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color){
+static inline void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color){
     startWrite();
-    writeFillRect(x,y,w,h,color);
+    writefillRect(x,y,w,h,color);
     endWrite();
 }
 
 void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
 
-void writeFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
+void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
 
-void writeFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
-
-static inline void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color){
-  startWrite();
-  writeFastVLine(x,y,h,color);
-  endWrite();
-}
-
-
-static inline void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color){
-  startWrite();
-  writeFastHLine(x,y,w,color);
-  endWrite();
-}
-
+void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
 
 void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size);
 
@@ -64,10 +50,7 @@ void setTextSize(uint8_t s);
              are set to same color rather than using a separate flag.
   */
   /**********************************************************************/
-  void setTextColor(uint16_t c) { 
-    textcolor = c;
-    textbgcolor = c; 
-  }
+  void setTextColor(uint16_t c) { textcolor = textbgcolor = c; }
 
   /**********************************************************************/
   /*!
@@ -77,10 +60,14 @@ void setTextSize(uint8_t s);
   */
   /**********************************************************************/
 <<<<<<< HEAD
+<<<<<<< HEAD
   void setTextandBGColor(uint16_t c, uint16_t bg) {
 =======
   void setTextColor(uint16_t c, uint16_t bg) {
 >>>>>>> parent of 8617010 (LCD Update #7.1)
+=======
+  void setTextanBGColor(uint16_t c, uint16_t bg) {
+>>>>>>> parent of e3e0b79 (LCD Update #7.3)
     textcolor = c;
     textbgcolor = bg;
   }
