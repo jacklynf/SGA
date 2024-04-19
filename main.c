@@ -106,7 +106,7 @@ int main(void) {
     setRotation(3);
     fillScreen(ILI9341_DARKGREEN);
 
-    fillRect(30, 30, 30, 50, ILI9341_RED);
+    fillRect(150, 30, 30, 50, ILI9341_RED);
 
     drawLine(100, 100, 200, 200, ILI9341_ORANGE);
     // End initialization
