@@ -59,7 +59,7 @@ void setTextSize(uint8_t s);
     @param   bg  16-bit 5-6-5 Color to draw background/fill with
   */
   /**********************************************************************/
-  void setTextColor(uint16_t c, uint16_t bg) {
+  void setTextanBGColor(uint16_t c, uint16_t bg) {
     textcolor = c;
     textbgcolor = bg;
   }
@@ -74,6 +74,6 @@ void setTextSize(uint8_t s);
   void setTextWrap(bool w) { wrap = w; }
 
   void printString(const char* string);
-  
+
 #endif  //LCD_GFX
 

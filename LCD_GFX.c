@@ -1,4 +1,5 @@
 #include "LCD_GFX.h"
+#include "glcdfont.c"
 
 #ifndef _swap_int16_t
 #define _swap_int16_t(a, b)                                                    \
