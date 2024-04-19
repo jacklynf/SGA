@@ -154,7 +154,7 @@ void setAddrWindow(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h) {
   //static uint16_t old_x1 = 0xffff, old_x2 = 0xffff;
   //static uint16_t old_y1 = 0xffff, old_y2 = 0xffff;
 
-  //uint16_t x2 = (x1 + w - 1), y2 = (y1 + h - 1);
+  uint16_t x2 = (x1 + w - 1), y2 = (y1 + h - 1);
   //if (x1 != old_x1 || x2 != old_x2) {
     writeCommand(ILI9341_CASET); // Column address set
 
