@@ -113,6 +113,7 @@ static inline void SPI_WRITE16(uint16_t w) {
 }
 
 
+
 void setAddrWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 
 
@@ -129,7 +130,14 @@ void setAddrWindow(uint16_t x, uint16_t y, uint16_t w, uint16_t h);
 uint8_t spiRead(void);
 
 
-void drawPixel(int16_t x, int16_t y, uint16_t color);
+/*drawPixel Function*/
+static inline void writePixel(int16_t x, int16_t y, uint16_t color) {
+    // Clip first...
+    if ((x >= 0) && (x < _width) && (y >= 0) && (y < _height)) {
+        setAddrWindow(x, y, 1, 1);
+        SPI_WRITE16(color);
+    }
+}
 
 
 

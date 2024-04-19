@@ -188,17 +188,6 @@ uint8_t spiRead(void) {
     return SPDR;
 }
 
-/*drawPixel Function*/
-void drawPixel(int16_t x, int16_t y, uint16_t color) {
-    // Clip first...
-    if ((x >= 0) && (x < _width) && (y >= 0) && (y < _height)) {
-        setAddrWindow(x, y, 1, 1);
-        SPI_WRITE16(color);
-    }
-}
-
-
-
 
 
 

@@ -105,6 +105,10 @@ int main(void) {
     LCD_Initialize();
     setRotation(3);
     fillScreen(ILI9341_DARKGREEN);
+
+    fillRect(30, 30, 30, 50, ILI9341_RED);
+
+    drawLine(100, 100, 200, 200, ILI9341_ORANGE);
     // End initialization
 
     uint8_t water_needs, light_needs;
