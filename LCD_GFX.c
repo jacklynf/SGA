@@ -37,8 +37,10 @@ void setRotation(uint8_t m) {
     _height = WIDTH;
     break;
   }
-
-  sendCommand(ILI9341_MADCTL, &m, 1);
+  startWrite();
+  writeCommand(ILI9341_MADCTL);
+  SPIWRITE(m);
+  endWrite();
 }
 
 

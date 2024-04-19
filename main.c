@@ -103,6 +103,8 @@ int main(void) {
     init_sm();
 
     LCD_Initialize();
+    setRotation(3);
+    fillScreen(ILI9341_DARKGREEN);
     // End initialization
 
     uint8_t water_needs, light_needs;
@@ -116,7 +118,6 @@ int main(void) {
 
     while (1){
 
-        //fillScreen(ILI9341_DARKGREEN);
         
         if(encoder_changed) { // Set plant needs based on user input
             encoder_changed = false;    
