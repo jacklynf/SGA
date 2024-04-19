@@ -112,7 +112,7 @@ void sendCommandAndData(uint8_t commandByte, uint8_t *dataBytes, uint8_t numData
     PORTB |= (DC);     //Set DC high (enter Data Mode)
 
     for (int i = 0; i < numDataBytes; i++) {
-            SPIWRITE(*dataBytes); // Send the data bytes
+            SPIWRITE(pgm_read_byte(dataBytes)); // Send the data bytes
             dataBytes++;
     }
     PORTB |= (CS); //Set CS pin HIGH (Deselect Slave)
@@ -246,20 +246,21 @@ void setAddrWindow(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h) {
   static uint16_t old_y1 = 0xffff, old_y2 = 0xffff;
 
   uint16_t x2 = (x1 + w - 1), y2 = (y1 + h - 1);
-  if (x1 != old_x1 || x2 != old_x2) {
+  //if (x1 != old_x1 || x2 != old_x2) {
     writeCommand(ILI9341_CASET); // Column address set
+
     SPI_WRITE16(x1);
     SPI_WRITE16(x2);
     old_x1 = x1;
     old_x2 = x2;
-  }
-  if (y1 != old_y1 || y2 != old_y2) {
+  //}
+  // if (y1 != old_y1 || y2 != old_y2) {
     writeCommand(ILI9341_PASET); // Row address set
     SPI_WRITE16(y1);
     SPI_WRITE16(y2);
     old_y1 = y1;
     old_y2 = y2;
-  }
+  // }
   writeCommand(ILI9341_RAMWR); // Write to RAM
 }
 

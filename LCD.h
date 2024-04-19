@@ -102,7 +102,7 @@ static inline void endWrite(void) {
 static inline void writeCommand(uint8_t cmd) {
   PORTB &= ~(DC);
   SPIWRITE(cmd);
-  PORTB |= (~DC);
+  PORTB |= (DC);
 }
 
 /*!
