@@ -106,9 +106,16 @@ int main(void) {
     setRotation(3);
     fillScreen(ILI9341_DARKGREEN);
 
-    fillRect(30, 30, 30, 50, ILI9341_RED);
+    fillRect(250, 30, 30, 50, ILI9341_RED);
 
     drawLine(100, 100, 200, 200, ILI9341_ORANGE);
+
+
+    setCursor(50,50);
+    setTextColor(ILI9341_ORANGE);
+    setTextSize(3);
+    const char test[] = "Hello World!";
+    printString(test);
     // End initialization
 
     uint8_t water_needs, light_needs;

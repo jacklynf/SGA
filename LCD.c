@@ -111,8 +111,8 @@ void sendCommandAndData(uint8_t commandByte, uint8_t *dataBytes, uint8_t numData
     SPIWRITE(commandByte); // Send the command byte
 
     PORTB |= (DC);     //Set DC high (enter Data Mode)
-
-    for (int i = 0; i < numDataBytes; i++) {
+    uint8_t i;
+    for (i = 0; i < numDataBytes; i++) {
             SPIWRITE(pgm_read_byte(dataBytes)); // Send the data bytes
             dataBytes++;
     }
