@@ -10,19 +10,32 @@ void setRotation(uint8_t m);
 
 void drawRGBBitmap(int16_t x, int16_t y, const uint16_t bitmap[], int16_t w, int16_t h);
 
-void writefillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color); 
+void writeFillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color); 
 
 static inline void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color){
     startWrite();
-    writefillRect(x,y,w,h,color);
+    writeFillRect(x,y,w,h,color);
     endWrite();
 }
 
 void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
 
-void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
+void writeFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
 
-void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
+void writeFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
+
+void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color){
+  startWrite();
+  writeFastVLine(x,y,h,color);
+  endWrite();
+}
+
+void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color){
+  startWrite();
+  writeFastHLine(x,y,w,color);
+  endWrite();
+}
+
 
 void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size);
 
