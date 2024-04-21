@@ -50,7 +50,8 @@ void setRotation(uint8_t m) {
 void fillScreen(uint16_t color) {
     startWrite();
     setAddrWindow(0, 0, _width, _height);
-    for (uint32_t x = 0; x < 76800; x++) {
+    uint32_t x;
+    for (x = 0; x < 76800; x++) {
         SPI_WRITE16(color);
     }
     endWrite();
@@ -71,8 +72,9 @@ void fillScreen(uint16_t color) {
 void drawRGBBitmap(int16_t x, int16_t y, const uint16_t bitmap[],
                                  int16_t w, int16_t h) {
   startWrite();
-  for (int16_t j = 0; j < h; j++, y++) {
-    for (int16_t i = 0; i < w; i++) {
+  uint16_t i,j;
+  for (j = 0; j < h; j++, y++) {
+    for (i = 0; i < w; i++) {
       writePixel(x + i, y, pgm_read_word(&bitmap[j * w + i]));
     }
   }
@@ -328,9 +330,10 @@ void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg
       c++; // Handle 'classic' charset behavior
 
     startWrite();
-    for (int8_t i = 0; i < 5; i++) { // Char bitmap = 5 columns
+    uint8_t i, j;
+    for (i = 0; i < 5; i++) { // Char bitmap = 5 columns
       uint8_t line = pgm_read_byte(&font[c * 5 + i]);
-      for (int8_t j = 0; j < 8; j++, line >>= 1) {
+      for (j = 0; j < 8; j++, line >>= 1) {
         if (line & 1) {
           if (size == 1 && size == 1)
             writePixel(x + i, y + j, color);
@@ -488,7 +491,8 @@ void setTextSize(uint8_t s) {
 }
 
 void printString(const char* string){
-  for(uint8_t i = 0; i < strlen(string); i++){
+  uint8_t i;
+  for(i = 0; i < strlen(string); i++){
     write(string[i]);
   }
 }
