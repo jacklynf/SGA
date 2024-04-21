@@ -19,7 +19,7 @@ void sendOutput(enum REGOUT led_select1, enum REGOUT led_select2,
     int i; 
     enum REGOUT water_pump = WATER, fertilizer_pump = FERTILIZER;
 
-    for(i = 0; i < 8; i++){ 
+    for(i = 0; i < 16; i++){ 
         if ((i == led_select1) || (i == led_select2) || // Select which 2 LEDs will be on
             ((i == water_pump) && (water_on == true)) || // Turn on water
             ((i == fertilizer_pump) && (fertilizer_on == true))) // Turn on fertilizer

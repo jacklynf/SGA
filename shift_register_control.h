@@ -15,14 +15,14 @@
 
 // Enum adds readability when selecting LEDs to turn on/off and which pumps to turn on/off
 enum REGOUT {
-    WATER,
+    WATER = 8,
     FERTILIZER,
-    RED2,
-    YELLOW2,
-    GREEN2,
-    RED1,
+    RED2,   
+    YELLOW2, 
+    GREEN2, 
+    RED1,   
     YELLOW1,
-    GREEN1
+    GREEN1 
 };
 
 /*

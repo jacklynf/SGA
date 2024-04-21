@@ -12,34 +12,73 @@
 // First write request to sensor, then read its response
 uint8_t begin_lightsensor(){
     uint8_t wb[] = {TSL2591_COMMAND_BIT | TSL2591_REGISTER_DEVICE_ID}; 
-    uint8_t rb[1];
-    uint8_t write_status, read_status;
+    uint8_t read_status;
 
-    if ((write_status = i2c_io(LIGHTSENSOR_ADDR, wb, 1, NULL, 0)) != 0)
-        return write_status;
-    if ((read_status = i2c_io(LIGHTSENSOR_ADDR, wb, 1, rb, 1)) != 0)
+    if ((read_status = i2c_io(LIGHTSENSOR_ADDR, wb, 1, wb, 1)) != 0)
         return read_status;
-    return rb[0];
+    return wb[0];
 }
 
 uint16_t enable_lightsensor(){    
-    uint8_t wb[] = {TSL2591_COMMAND_BIT | TSL2591_REGISTER_ENABLE, TSL2591_ENABLE_POWERON};
-    // uint8_t wb[] = {TSL2591_REGISTER_ENABLE, TSL2591_ENABLE_POWERON};
+    uint8_t wb[] = {TSL2591_COMMAND_BIT | TSL2591_REGISTER_ENABLE, 
+                    TSL2591_ENABLE_POWERON| TSL2591_ENABLE_AEN | TSL2591_ENABLE_AIEN | TSL2591_ENABLE_NPIEN};
+    return i2c_io(LIGHTSENSOR_ADDR, wb, 2, NULL, 0); // Returns 0 on success
+}
+
+uint16_t disable_lightsensor(){ 
+    uint8_t wb[] = {TSL2591_COMMAND_BIT | TSL2591_REGISTER_ENABLE, TSL2591_ENABLE_POWEROFF};
     return i2c_io(LIGHTSENSOR_ADDR, wb, 2, NULL, 0); // Returns 0 on success
 }
 
 uint8_t configure_lightsensor(){    
-  uint8_t integration = TSL2591_INTEGRATIONTIME_100MS;
-  uint8_t gain = TSL2591_GAIN_MED;
+  _integration = TSL2591_INTEGRATIONTIME_600MS;
+  uint8_t gain = TSL2591_GAIN_HIGH;
   uint8_t reg_addr = TSL2591_COMMAND_BIT | TSL2591_REGISTER_CONTROL;
-  uint8_t command = integration | gain;
-  uint8_t wb[2] = {reg_addr, command}, rb[1] = {0};
-  uint8_t read_status, write_status;
+  uint8_t command = _integration | gain;
+  uint8_t wb[2] = {reg_addr, command};
 
-  if ((write_status = i2c_io(LIGHTSENSOR_ADDR, wb, 2, NULL, 0)) != 0)
-        return 3;
-  if ((read_status = i2c_io(LIGHTSENSOR_ADDR, wb, 1, rb, 1)) != 0)
-        return 4;
+  return i2c_io(LIGHTSENSOR_ADDR, wb, 2, NULL, 0);
+}
 
-  return 0;
+uint32_t get_luminosity(){
+    uint8_t d;
+    uint16_t rbx[2], rby[2];
+    
+    enable_lightsensor();
+    for (d = 0; d <= _integration; d++) 
+        _delay_ms(120);
+
+    uint32_t x;
+    uint16_t y;
+    if (!i2c_io(LIGHTSENSOR_ADDR, TSL2591_COMMAND_BIT | TSL2591_REGISTER_CHAN0_LOW, 1, rby, 2)){
+        if (!i2c_io(LIGHTSENSOR_ADDR, TSL2591_COMMAND_BIT | TSL2591_REGISTER_CHAN1_LOW, 1, rbx, 2)){
+            y = (rby[1] << 8) | rby[0];
+            x = (rbx[1] << 8) | rbx[0];
+        }
+    }
+    //    y = i2c_io(LIGHTSENSOR_ADDR, TSL2591_COMMAND_BIT | TSL2591_REGISTER_CHAN0_LOW, 1, rby, 2);
+    // x = i2c_io(LIGHTSENSOR_ADDR, TSL2591_COMMAND_BIT | TSL2591_REGISTER_CHAN1_LOW, 1, rbx, 2);
+    x <<= 16;
+    x |= y;
+
+    disable_lightsensor();
+    return x;
+
+}
+
+float calculate_lux(uint16_t ch0, uint16_t ch1) {
+  float atime, again;
+  float cpl, lux;
+
+  // Check for overflow conditions first
+  if ((ch0 == 0xFFFF) | (ch1 == 0xFFFF)) {
+    // Signal an overflow
+    return -1;
+  }
+
+  atime = 600.0F; // 600ms
+  again = 428.0F; // high gain
+  cpl = (atime * again) / TSL2591_LUX_DF;
+  lux = (((float)ch0 - (float)ch1)) * (1.0F - ((float)ch1 / (float)ch0)) / cpl;
+  return lux;
 }

@@ -80,10 +80,11 @@ A typical read of 20 bytes with a 1-byte address is done with
     i2c_io(0xD0, wbuf, 1, rbuf, 20);
 */
 
-uint8_t i2c_io(uint8_t device_addr,
+uint8_t i2c_io(uint8_t da_8bit,
                uint8_t *wp, uint16_t wn, uint8_t *rp, uint16_t rn)
 {
     uint8_t status, send_stop, wrote, start_stat;
+    uint8_t device_addr = (da_8bit << 1);
 
     status = 0;
     wrote = 0;

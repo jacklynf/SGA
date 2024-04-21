@@ -54,7 +54,7 @@
 #define      NPK_COUNT 2
 #define    LIGHT_COUNT 1
 
-#define BDIV (F_CPU / 300000 - 16) / 2 + 1    // Puts I2C rate just below 100kHz
+#define BDIV (F_CPU / 100000 - 16) / 2 + 1    // Puts I2C rate just below 100kHz
 
 // Volatile variables for interrupts
 volatile int test_flag=0;
@@ -105,37 +105,73 @@ int main(void) {
 
     enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
    
-        led_select1 = GREEN1;
-        led_select2 = RED2;
-        sendOutput(led_select1, led_select2, water, fertilizer);
-        _delay_ms(1000);
+    led_select1 = GREEN1;
+    led_select2 = RED2;
+    sendOutput(led_select1, led_select2, water, fertilizer);
+    _delay_ms(1000);
 
 
    // Begin i2c communication with light sensor
    // https://github.com/adafruit/Adafruit_TSL2591_Library/blob/master/Adafruit_TSL2591.cpp#L467 
-    uint8_t dev_id = begin_lightsensor();
-    if (dev_id == 0x50){ // Use LEDs to determine response when testing
-        led_select1 = GREEN1;
-        led_select2 = GREEN2;
-        sendOutput(led_select1, led_select2, water, fertilizer);
+    uint8_t dev_id;
+    
+    if ((dev_id = begin_lightsensor()) == 0x50){
+        enable_lightsensor();
+        configure_lightsensor();
     }
-    else if (dev_id == 0x20){ // Use LEDs to determine response when testing
-        led_select1 = RED1;
-        led_select2 = RED2;
-        sendOutput(led_select1, led_select2, water, fertilizer);
-    }
+      
+    // uint32_t light = get_luminosity();
+    // if ((light > 0 ) && (light < 100)){
+    // led_select1 = GREEN1;
+    // led_select2 = GREEN2;
+    // sendOutput(led_select1, led_select2, water, fertilizer);
+    // }
+    // else if ((light == 0 )){
+    // led_select1 = RED1;
+    // led_select2 = RED2;
+    // sendOutput(led_select1, led_select2, water, fertilizer);
+    // }
+    // else if ((light > 100 )){
+    // led_select1 = YELLOW1;
+    // led_select2 = YELLOW2;
+    // sendOutput(led_select1, led_select2, water, fertilizer);
+    // }
+    // _delay_ms(2000);
 
     DDRC |= (1 << PD0);
 
-    
-
+    uint32_t lum;
+    uint16_t full, ir;
+    float light;
     while (1){
+        lum = get_luminosity();
+        ir = lum >> 16;
+        full = lum & 0xFFFF;
+        light = calculate_lux(full, ir);
+        // _delay_ms(1000);    
+        if ((light >= 0 ) && (light < 1)){
+        led_select1 = GREEN1;
+        led_select2 = GREEN2;
+        sendOutput(led_select1, led_select2, water, fertilizer);
+        }
+        else if ((light >= 1)&&(light < 2)){
+        led_select1 = RED1;
+        led_select2 = RED2;
+        sendOutput(led_select1, led_select2, water, fertilizer);
+        }
+        else if ((light > 2 )){
+        led_select1 = YELLOW1;
+        led_select2 = YELLOW2;
+        sendOutput(led_select1, led_select2, water, fertilizer);
+        }
+
+
         if (check_light){
             check_light = false;
         }
 
         if(encoder_changed) { // Set plant needs based on user input
-            encoder_changed = false;
+            water = true;
             water_light = user_input(encoder_new_state);
             water_needs = (water_light >> 8), light_needs = water_light;
         }

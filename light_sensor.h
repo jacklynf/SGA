@@ -125,5 +125,9 @@ typedef enum {
 uint8_t configure_lightsensor();
 uint16_t enable_lightsensor();
 uint8_t begin_lightsensor();
+uint32_t get_luminosity();
+float calculate_lux(uint16_t, uint16_t);
+
+uint8_t _integration;
 
 #endif
