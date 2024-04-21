@@ -64,7 +64,7 @@ void sendCommand(uint8_t commandByte);
             using hardware SPI and transactions are supported). Required
             for all display types; not an SPI-specific function.
 */
-extern inline void startWrite(void) {
+static inline void startWrite(void) {
   //SPI_BEGIN_TRANSACTION();
   cli(); //Disable interrupts while SPI Command is being sent
   PORTB &= ~(CS); //Set CS and pin Low (Select Slave)
@@ -77,7 +77,7 @@ extern inline void startWrite(void) {
             using hardware SPI and transactions are supported). Required
             for all display types; not an SPI-specific function.
 */
-extern inline void endWrite(void) {
+static inline void endWrite(void) {
   PORTB |= (CS); //Set CS and pin High (Deselect Slave)
   sei(); //Re-enable interrupts after SPI Command is done being sent
   //SPI_END_TRANSACTION();
@@ -91,7 +91,7 @@ extern inline void endWrite(void) {
             function -- just use spiWrite().
     @param  cmd  8-bit command to write.
 */
-extern inline void writeCommand(uint8_t cmd) {
+static inline void writeCommand(uint8_t cmd) {
   PORTB &= ~(DC);
   SPIWRITE(cmd);
   PORTB |= (DC);
@@ -107,7 +107,7 @@ extern inline void writeCommand(uint8_t cmd) {
             that. Again, staying compatible with outside code.
     @param  w  16-bit value to write.
 */
-extern inline void SPI_WRITE16(uint16_t w) {
+static inline void SPI_WRITE16(uint16_t w) {
     SPIWRITE(w >> 8);
     SPIWRITE(w);
 }
@@ -131,7 +131,7 @@ uint8_t spiRead(void);
 
 
 /*drawPixel Function*/
-extern inline void writePixel(int16_t x, int16_t y, uint16_t color) {
+static inline void writePixel(int16_t x, int16_t y, uint16_t color) {
     // Clip first...
     if ((x >= 0) && (x < _width) && (y >= 0) && (y < _height)) {
         setAddrWindow(x, y, 1, 1);

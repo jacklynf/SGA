@@ -20,13 +20,13 @@ void writeFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
 
 void writeFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
 
-inline void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color){
+static inline void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color){
   startWrite();
   writeFastVLine(x,y,h,color);
   endWrite();
 }
 
-inline void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color){
+static inline void drawFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color){
   startWrite();
   writeFastHLine(x,y,w,color);
   endWrite();
