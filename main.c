@@ -50,7 +50,7 @@
 // How often to check sensors. 
 // Timer interrupts every 2 seconds, so all count values are multiplied by 2 seconds.
 #define MOISTURE_COUNT 2 
-#define HUMIDITY_COUNT 4
+#define HUMIDITY_COUNT 2
 #define      NPK_COUNT 2
 #define    LIGHT_COUNT 1
 
@@ -128,11 +128,11 @@ int main(void) {
         sendOutput(led_select1, led_select2, water, fertilizer);
     }
     else if (conf == 0){
-        led_select1 = YELLOW1;
-        led_select2 = YELLOW2;
+        led_select1 = GREEN1;
+        led_select2 = GREEN2;
         sendOutput(led_select1, led_select2, water, fertilizer);
     }
-    _delay_ms(500);
+    _delay_ms(2000);
 
     DDRC |= (1 << PD0);
 
@@ -157,37 +157,37 @@ int main(void) {
         if(check_humidity){
             check_humidity = false;
             if (update_humidity()){
-                _delay_ms(1);
-                humidity = get_humidity() >> 8; // Integer value is in left-most 8bits of humidity variable
+                _delay_us(1);
+                humidity = get_humidity();///10; 
             }
-            else 
-                humidity = 999; // Else update did not work, no humidity value update
+            // else 
+            //     humidity = 999; // Else update did not work, no humidity value update
 
-            if (humidity == 999){
-                led_select1 = RED1;
-                led_select2 = GREEN2;
-                sendOutput(led_select1, led_select2, water, fertilizer);
-            }
-            else if (humidity == 0){
-                led_select1 = RED1;
-                led_select2 = YELLOW2;
-                sendOutput(led_select1, led_select2, water, fertilizer);
-            }
-            else if ((humidity >0) &&(humidity <= 50)){
-                led_select1 = RED1;
-                led_select2 = RED2;
-                sendOutput(led_select1, led_select2, water, fertilizer);
-            }
-            else if ((humidity >50) && (humidity < 100)){ 
-                led_select1 = YELLOW1;
-                led_select2 = GREEN2;
-                sendOutput(led_select1, led_select2, water, fertilizer);
-            }            
-            else{
-                led_select1 = GREEN1;
-                led_select2 = GREEN2;
-                sendOutput(led_select1, led_select2, water, fertilizer);
-            }            
+            // if (humidity == 0){
+            //     led_select1 = RED1;
+            //     led_select2 = RED1;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
+            // }
+            // else if ((humidity > 0) &&(humidity <= 10)){
+            //     led_select1 = RED1;
+            //     led_select2 = RED2;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
+            // }
+            // else if ((humidity > 10) && (humidity <= 50)){ 
+            //     led_select1 = YELLOW1;
+            //     led_select2 = GREEN2;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
+            // }            
+            // else if ((humidity >50) && (humidity <= 100)){
+            //     led_select1 = GREEN1;
+            //     led_select2 = GREEN2;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
+            // }       
+            // else{
+            //     led_select1 = YELLOW1;
+            //     led_select2 = YELLOW1;
+            //     sendOutput(led_select1, led_select2, water, fertilizer);
+            // }     
         }
         
         if (check_npk){

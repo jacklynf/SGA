@@ -20,17 +20,17 @@
 #define microsecondsToClockCycles(a) ( (a) * clockCyclesPerMicrosecond() )
 
 #define MAX_TIMEOUT UINT_MAX
-#define LOW         0
-#define HIGH        1
+#define LOW         ~(1 << PD3)
+#define HIGH        (1 << PD3)
  
 volatile unsigned long timer0_overflow_count = 0;
 volatile unsigned long timer0_millis = 0;
 static unsigned char timer0_fract = 0;
 // End micros() function variables
 
-unsigned int counter = 0;
+uint64_t counter = 0;
 
-void init_humidity(){
+void init_humidity(){ // Initialize pin as input with pullup
     _dataPin = (1 << PD3);
     DDRC &= ~_dataPin;
     PORTD |= _dataPin;
@@ -38,19 +38,21 @@ void init_humidity(){
 }
 
 uint16_t get_humidity(){
-    return _humidity ;
+    return _humidity;
 }
 
-uint8_t update_humidity(){
+uint64_t update_humidity(){
     int i, j;
     unsigned long marks[41] = {0};
     unsigned long stops[40] = {0};
     unsigned int highTime, lowTime;
-    unsigned int high_time[40] = {0};
+    uint64_t high_time[40] = {0};
     char dataBytes[5] = {0};
+    _humidity = 0;
 
     cli();
 
+    _delay_us(1);
     // Begin state: input HIGH
     DDRD &= ~(1 << PD3); // Set PD3 as input
     PORTD |= (1 << PD3); // Enable pullup
@@ -63,51 +65,56 @@ uint8_t update_humidity(){
     PORTD |= (1 << PD3); 
     _delay_us(20);
     // Sensor should pull data pin low 80us, then pull back up
-    if (!waitForRHT(LOW, MAX_TIMEOUT))
-        return errorExit(0);
-    if (!waitForRHT(HIGH, MAX_TIMEOUT))
-        return errorExit(0);
+    // if (!waitForRHT(LOW, MAX_TIMEOUT))
+    //     return errorExit(1);
+    // if (!waitForRHT(HIGH, MAX_TIMEOUT))
+    //     return errorExit(2);
+    // while (~PIND & (1 << PD3))
+    //     _delay_us(1);
+    
+    _delay_us(80);
+    while (PIND & (1 << PD3))
+        _delay_us(1);
+
+    // return 1;
+    // _delay_us(1);
 
     // Sensor transmits 40 bytes (16 rh, 16 temp, 8 checksum)
     // Each byte starts with a ~50us LOW then a HIGH pulse. The duration of the
     // HIGH pulse determines the value of the bit.
     // If the duration of the received high signal is between 26-28us, the bit is 0
     // If the duration of the received high signal is 70us, the bit is 1
-    for (i = 0; i < 40; i++)
+    
+    counter = 0;
+    for (i = 0; i < 8; i++)
     {
-        if (!waitForRHT(LOW, MAX_TIMEOUT))
-            return errorExit(0);
-        // marks[i] = micros();
-        if (!waitForRHT(HIGH, MAX_TIMEOUT)) 
-            return errorExit(0);
+        // while (~PIND & (1 << PD3))
+        //     _delay_us(1);
+        _delay_us(50);
+        while (PIND & (1 << PD3)){
+            _delay_us(1);
+            counter++;
+        }
         high_time[i] = counter;
         counter = 0;
-        // stops[i] = micros();
     }
-    if (!waitForRHT(LOW, MAX_TIMEOUT))
-        return errorExit(0);
-    // marks[16] = micros();
+
+    while (~PIND & (1 << PD3))
+        _delay_us(1);
+
     sei();
     
-    
-    // for (i = 0; i < 40; i++)
-    // {
-    //     lowTime = stops[i] - marks[i];
-    //     highTime = marks[i + 1] - stops[i];
-    //     if (highTime > lowTime)
-    //     {
-    //         dataBytes[i / 8] |= (1 << (7 - i % 8));
-    //     }
-    // }
-    uint8_t val;
-    for (i = 0, j = 7; i < 8, j >= 0; i++, j--){ // Only need the first 8 values for humidity integer value
-        if ((high_time[i] > 25)&&(high_time[i] < 35))
+    uint64_t val;
+    j = 7;
+    for (i = 0; i < 8; i++){ // Only need the first 8 values for humidity integer value        
+        if ((high_time[i] >= 0)&&(high_time[i] < 3))         
             val = 0;
-        else if ((high_time[i] > 65)&&(high_time[i] < 75))
+        else if ((high_time[i] >= 3)&&(high_time[i] < 10))
             val = 1;
         else
             return 0; // If value is outside of these boundaries, something didn't go right
         _humidity = _humidity | (val << j);
+        j--;
     }
 
     return 1;
@@ -142,20 +149,20 @@ uint8_t errorExit(int code)
     return code;
 }
 
-_Bool waitForRHT(int pinState, unsigned int timeout)
-{
+// _Bool waitForRHT(int pinState, unsigned int timeout)
+// {
     
-    while (((PIND & (1 << PD3)) != pinState) && (counter++ < timeout))
-        _delay_us(1);
+//     // while (((PIND & (1 << PD3)) == pinState) && (counter++ < timeout))
+//     //     _delay_us(1);
 
-    if (pinState  == LOW) // Reset counter before high signal
-        counter = 0; 
+//     // if (pinState  == LOW) // Reset counter before high signal
+//     //     counter = 0; 
 
-    if (counter >= timeout)
-        return false;
-    else
-        return true;
-}
+//     // if (counter >= timeout)
+//     //     return false;
+//     // else
+//     //     return true;
+// }
 
 unsigned long micros(){
     unsigned long m;
