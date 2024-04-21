@@ -96,6 +96,21 @@ int main(void) {
     init_npk();
     init_humidity();
     init_soilmoisture();
+
+    LCD_Initialize();
+    setRotation(3);
+    fillScreen(ILI9341_DARKGREEN);
+
+    fillRect(250, 30, 30, 50, ILI9341_RED);
+
+    drawLine(100, 100, 200, 200, ILI9341_ORANGE);
+
+
+    setCursor(50,50);
+    setTextColor(ILI9341_ORANGE);
+    setTextSize(3);
+    const char test[] = "Hello World!";
+    printString(test);
     // End initialization
 
     uint8_t i;
@@ -171,6 +186,7 @@ int main(void) {
         }
 
         if(encoder_changed) { // Set plant needs based on user input
+            encoder_changed = false;    
             water = true;
             water_light = user_input(encoder_new_state);
             water_needs = (water_light >> 8), light_needs = water_light;

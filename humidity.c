@@ -171,10 +171,10 @@ unsigned long micros(){
     m = timer0_overflow_count;
     t = TCNT0;
  
-    if ((TIFR0 & _BV(TOV0)) && (t < 255))
-        m++;
+    // if ((TIFR0 & _BV(TOV0)) && (t < 255))
+    //     m++;
  
-    SREG = oldSREG;
+    // SREG = oldSREG;
      
     return ((m << 8) + t) * (64 / clockCyclesPerMicrosecond());
 }
