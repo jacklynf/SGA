@@ -23,15 +23,9 @@ uint8_t begin_lightsensor(){
 }
 
 uint16_t enable_lightsensor(){    
-  uint8_t reg_addr = TSL2591_COMMAND_BIT | TSL2591_REGISTER_ENABLE;
-  uint8_t enable = TSL2591_ENABLE_POWERON;// | TSL2591_ENABLE_AEN | TSL2591_ENABLE_AIEN | TSL2591_ENABLE_NPIEN;
-  uint8_t wb[2] = {reg_addr, enable};
-  uint8_t write_status;
-
-  if ((write_status = i2c_io(LIGHTSENSOR_ADDR, wb, 2, NULL, 0)) != 0)
-        return write_status;
-
-  return 0;
+    uint8_t wb[] = {TSL2591_COMMAND_BIT | TSL2591_REGISTER_ENABLE, TSL2591_ENABLE_POWERON};
+    // uint8_t wb[] = {TSL2591_REGISTER_ENABLE, TSL2591_ENABLE_POWERON};
+    return i2c_io(LIGHTSENSOR_ADDR, wb, 2, NULL, 0); // Returns 0 on success
 }
 
 uint8_t configure_lightsensor(){    

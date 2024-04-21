@@ -54,8 +54,7 @@
 #define      NPK_COUNT 2
 #define    LIGHT_COUNT 1
 
-#define BDIV (F_CPU / 100000 - 16) / 2 + 1    // Puts I2C rate just below 100kHz
-#define LIGHTSENSOR_ADDR 0x29
+#define BDIV (F_CPU / 300000 - 16) / 2 + 1    // Puts I2C rate just below 100kHz
 
 // Volatile variables for interrupts
 volatile int test_flag=0;
@@ -85,13 +84,6 @@ volatile unsigned char moisture = 0;
 
 ///////////////  End volatile variables
 
-// typedef struct{ // Structure to hold pumps array
-//     _Bool *wat_fert_needed;
-//     uint8_t num_pumps;
-// } user_struct;
- 
-
-
 
 int main(void) {    
     sei(); // Enable Global Interrupts
@@ -113,26 +105,25 @@ int main(void) {
 
     enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
    
+        led_select1 = GREEN1;
+        led_select2 = RED2;
+        sendOutput(led_select1, led_select2, water, fertilizer);
+        _delay_ms(1000);
+
+
    // Begin i2c communication with light sensor
+   // https://github.com/adafruit/Adafruit_TSL2591_Library/blob/master/Adafruit_TSL2591.cpp#L467 
     uint8_t dev_id = begin_lightsensor();
     if (dev_id == 0x50){ // Use LEDs to determine response when testing
         led_select1 = GREEN1;
         led_select2 = GREEN2;
         sendOutput(led_select1, led_select2, water, fertilizer);
     }
-    _delay_ms(500);
-    uint8_t conf = configure_lightsensor();
-    if ((conf == 3)||(conf == 4)){
+    else if (dev_id == 0x20){ // Use LEDs to determine response when testing
         led_select1 = RED1;
         led_select2 = RED2;
         sendOutput(led_select1, led_select2, water, fertilizer);
     }
-    else if (conf == 0){
-        led_select1 = GREEN1;
-        led_select2 = GREEN2;
-        sendOutput(led_select1, led_select2, water, fertilizer);
-    }
-    _delay_ms(2000);
 
     DDRC |= (1 << PD0);
 
