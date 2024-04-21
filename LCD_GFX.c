@@ -501,7 +501,7 @@ void printString(const char* string){
     @param  y    Y coordinate in pixels
   */
   /**********************************************************************/
-  static inline void setCursor(int16_t x, int16_t y) {
+  void setCursor(int16_t x, int16_t y) {
     cursor_x = x;
     cursor_y = y;
   }
