@@ -146,6 +146,12 @@ void writeFillRect(int16_t x, int16_t y, int16_t w, int16_t h,
   }
 }
 
+void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color){
+    startWrite();
+    writeFillRect(x,y,w,h,color);
+    endWrite();
+}
+
 
 
 /**************************************************************************/
@@ -476,15 +482,6 @@ size_t write(uint8_t c) {
     @param  s  Desired text size. 1 is default 6x8, 2 is 12x16, 3 is 18x24, etc
 */
 /**************************************************************************/
-
-/**************************************************************************/
-/*!
-    @brief   Set text 'magnification' size. Each increase in s makes 1 pixel
-   that much bigger.
-    @param  s_x  Desired text width magnification level in X-axis. 1 is default
-    @param  s_y  Desired text width magnification level in Y-axis. 1 is default
-*/
-/**************************************************************************/
 void setTextSize(uint8_t s) {
   textsize_x = (s > 0) ? s : 1;
   textsize_y = (s > 0) ? s : 1;
@@ -496,3 +493,46 @@ void printString(const char* string){
     write(string[i]);
   }
 }
+
+ /**********************************************************************/
+  /*!
+    @brief  Set text cursor location
+    @param  x    X coordinate in pixels
+    @param  y    Y coordinate in pixels
+  */
+  /**********************************************************************/
+  static inline void setCursor(int16_t x, int16_t y) {
+    cursor_x = x;
+    cursor_y = y;
+  }
+
+  /**********************************************************************/
+  /*!
+    @brief   Set text font color with transparant background
+    @param   c   16-bit 5-6-5 Color to draw text with
+    @note    For 'transparent' background, background and foreground
+             are set to same color rather than using a separate flag.
+  */
+  /**********************************************************************/
+  void setTextColor(uint16_t c) { textcolor = textbgcolor = c; }
+
+  /**********************************************************************/
+  /*!
+    @brief   Set text font color with custom background color
+    @param   c   16-bit 5-6-5 Color to draw text with
+    @param   bg  16-bit 5-6-5 Color to draw background/fill with
+  */
+  /**********************************************************************/
+  void setTextanBGColor(uint16_t c, uint16_t bg) {
+    textcolor = c;
+    textbgcolor = bg;
+  }
+
+  /**********************************************************************/
+  /*!
+  @brief  Set whether text that is too long for the screen width should
+          automatically wrap around to the next line (else clip right).
+  @param  w  true for wrapping, false for clipping
+  */
+  /**********************************************************************/
+  void setTextWrap(bool w) { wrap = w; }

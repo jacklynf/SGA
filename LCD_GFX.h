@@ -12,11 +12,7 @@ void drawRGBBitmap(int16_t x, int16_t y, const uint16_t bitmap[], int16_t w, int
 
 void writeFillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color); 
 
-static inline void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color){
-    startWrite();
-    writeFillRect(x,y,w,h,color);
-    endWrite();
-}
+void fillRect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color);
 
 void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color);
 
@@ -24,7 +20,7 @@ void writeFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color);
 
 void writeFastHLine(int16_t x, int16_t y, int16_t w, uint16_t color);
 
-static inline void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color){
+void drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color){
   startWrite();
   writeFastVLine(x,y,h,color);
   endWrite();
@@ -41,7 +37,7 @@ void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg
 
 size_t write(uint8_t c);
 
-static inline void setTextSize(uint8_t s);
+void setTextSize(uint8_t s);
 
  /**********************************************************************/
   /*!
@@ -50,10 +46,7 @@ static inline void setTextSize(uint8_t s);
     @param  y    Y coordinate in pixels
   */
   /**********************************************************************/
-  static inline void setCursor(int16_t x, int16_t y) {
-    cursor_x = x;
-    cursor_y = y;
-  }
+  void setCursor(int16_t x, int16_t y);
 
   /**********************************************************************/
   /*!
@@ -63,7 +56,7 @@ static inline void setTextSize(uint8_t s);
              are set to same color rather than using a separate flag.
   */
   /**********************************************************************/
-  static inline void setTextColor(uint16_t c) { textcolor = textbgcolor = c; }
+  void setTextColor(uint16_t c);
 
   /**********************************************************************/
   /*!
@@ -72,10 +65,7 @@ static inline void setTextSize(uint8_t s);
     @param   bg  16-bit 5-6-5 Color to draw background/fill with
   */
   /**********************************************************************/
-  static inline void setTextanBGColor(uint16_t c, uint16_t bg) {
-    textcolor = c;
-    textbgcolor = bg;
-  }
+  void setTextanBGColor(uint16_t c, uint16_t bg);
 
   /**********************************************************************/
   /*!
@@ -84,7 +74,7 @@ static inline void setTextSize(uint8_t s);
   @param  w  true for wrapping, false for clipping
   */
   /**********************************************************************/
-  static inline void setTextWrap(bool w) { wrap = w; }
+  void setTextWrap(bool w);
 
   void printString(const char* string);
 
