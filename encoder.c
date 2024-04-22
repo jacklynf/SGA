@@ -55,7 +55,7 @@ uint16_t user_input(uint8_t encoder_new_state){
             break;
     }
 
-    needs = (water_needs << 8) | light_needs;
+    needs = (water_needs << 8) | light_needs; // Store both if plant needs water and if plant needs light in 1 variable
     return needs;
 }
 

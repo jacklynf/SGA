@@ -15,14 +15,15 @@ void init_reg(){
 }
 
 void sendOutput(enum REGOUT led_select1, enum REGOUT led_select2, 
-                _Bool water_on, _Bool fertilizer_on){
+                _Bool water_on, _Bool fertilizer_on, _Bool light_on){
     int i; 
-    enum REGOUT water_pump = WATER, fertilizer_pump = FERTILIZER;
+    enum REGOUT water_pump = WATER, fertilizer_pump = FERTILIZER, grow_light = GROW_LIGHT;
 
     for(i = 0; i < 16; i++){ 
         if ((i == led_select1) || (i == led_select2) || // Select which 2 LEDs will be on
             ((i == water_pump) && (water_on == true)) || // Turn on water
-            ((i == fertilizer_pump) && (fertilizer_on == true))) // Turn on fertilizer
+            ((i == fertilizer_pump) && (fertilizer_on == true)) ||
+            ((i == GROW_LIGHT) && (light_on == true))) // Turn on fertilizer
             PORTD |= SERIAL_DATA_OUT;
         else
             PORTD &= ~SERIAL_DATA_OUT;

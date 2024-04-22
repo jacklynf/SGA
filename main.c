@@ -49,32 +49,32 @@
 #include "light_sensor.h"
 #include "LCD.h"
 #include "LCD_GFX.h"
+#include "i2c_mux.h"
 
 // How often to check sensors. 
-// Timer interrupts every 2.5 seconds, so all count values are multiplied by 2.5 seconds.
-#define MOISTURE_COUNT 2 
+// Timer interrupts every 2 seconds, so all count values are multiplied by 2 seconds.
+#define MOISTURE_COUNT 1
 #define HUMIDITY_COUNT 1
 #define      NPK_COUNT 2
 #define    LIGHT_COUNT 1
+#define      MUX_COUNT 2
 
 #define BDIV (F_CPU / 100000 - 16) / 2 + 1    // Puts I2C rate just below 100kHz
 
 // Volatile variables for interrupts
-volatile int test_flag=0;
 
 // NPK variables
 volatile uint8_t rx_complete = false, check_npk = 0, fertilizer_complete = true; // NPK flags
 volatile uint8_t j = 0, npk_counter = 0; // NPK interrupt counters
 volatile unsigned char npk_buf[8] = {0}; // NPK RX buffer
-volatile _Bool fertilizer = false; // Initialize fertilizer pump to off
+volatile _Bool f_pump_on = false; // Initialize fertilizer pump to off
 
 // Grow light variables
-volatile _Bool light_on = false; // Initialize grow light to off
 volatile uint8_t check_light = 0; // Light sensor flag
 volatile uint8_t lightsensor_counter = 0; // Light sensor interrupt counter
 
 // Humidity variables
-volatile _Bool water = false; // Initialize water pump to off
+volatile _Bool w_pump_on = false; // Initialize water pump to off
 volatile uint8_t water_complete = true; // Water flags
 volatile uint8_t humidity_counter = 0; // Humidity interrupt counter
 volatile uint8_t check_humidity = 0; // Humidity flag
@@ -85,7 +85,17 @@ volatile uint8_t moisture_counter = 0; // Soil moisture interrupt counter
 volatile unsigned char moisture = 0;
 ///////////////  End volatile variables
 
+
+
+
+volatile uint8_t test_flag = 0;
+
+
+
+
 int main(void) {    
+    DDRC |= 1 << DDC0;
+    
     sei(); // Enable Global Interrupts
     
     // Initialize i2c, registers, ports, and sensors    
@@ -95,44 +105,37 @@ int main(void) {
     init_reg();
     init_npk();
     init_humidity();
+    init_mux();
     init_soilmoisture();
-
     LCD_Initialize();
     setRotation(3);
     fillScreen(ILI9341_DARKGREEN);
-
     // fillRect(250, 30, 30, 50, ILI9341_RED);
-
     // drawLine(100, 100, 200, 200, ILI9341_ORANGE);
 
+    // End initialization
 
+    uint16_t lum, humidity = 0, water_light;
+    uint8_t water_needs, light_needs, dev_id, moist_threshold = 200, hum_threshold = 30;
+    _Bool grow_light = false;
+    enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
+    led_select1 = GREEN1, led_select2 = GREEN2;
+    sendOutput(led_select1, led_select2, w_pump_on, f_pump_on, grow_light);
+   
+    // Startup screen
     setCursor(25,75);
     setTextColor(ILI9341_ORANGE);
     setTextSize(3);
     printString("Smart Gardening");
     setCursor(75,125);
     printString("Assistant");
-    // End initialization
-
-    uint16_t humidity = 0;
-    uint8_t water_needs, light_needs;
-    uint16_t water_light;
-
-    enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
-   
-    // led_select1 = GREEN1;
-    // led_select2 = GREEN2;
-    // sendOutput(led_select1, led_select2, water, fertilizer);
-    _delay_ms(2000);
+    _delay_ms(2000); // Pause on start screen
     fillScreen(ILI9341_DARKGREEN);
+    // End of startup screen
 
 
    // Begin i2c communication with light sensor
-   // https://github.com/adafruit/Adafruit_TSL2591_Library/blob/master/Adafruit_TSL2591.cpp#L467 
-    uint8_t dev_id;
-    char buf[16];
-    
-    if ((dev_id = begin_lightsensor()) == 0x50){
+    if ((dev_id = init_lightsensor()) == 0x50){
         if (!enable_lightsensor()){
             if (!configure_lightsensor()){
                 setCursor(55,50);
@@ -142,44 +145,46 @@ int main(void) {
             }
         }
     }
-    _delay_ms(2000);
+    // End light sensor configuration
+    _delay_ms(2000); // Pause on sensor screen
     fillScreen(ILI9341_DARKGREEN); 
     init_base_screen(encoder);
-
-    DDRC |= (1 << PD0);
-
-    uint16_t lum;
+    
     while (1){        
         _delay_ms(250);
 
-        if (check_light){
+        if (check_light){ // Check if grow light is needed
             check_light = false;
-            lum = get_luminosity(); 
+            lum = get_luminosity();
             ud_lcd_light(lum);
-            // if (lum < 100)
+            if (lum < 100) // Adjust this value based on user settings
+                sendOutput(led_select1, led_select2, w_pump_on, f_pump_on, grow_light = true); // Turn grow light on if light is low 
+            else           
+                sendOutput(led_select1, led_select2, w_pump_on, f_pump_on, grow_light = false); // Turn grow light on if light is low
         }
 
         if(encoder_changed) { // Set plant needs based on user input
-            encoder_changed = false;    
-            water = true;
-            water_light = user_input(encoder_new_state);
-            water_needs = (water_light >> 8), light_needs = water_light;
+            encoder_changed = false;  
+            water_light = user_input(encoder_new_state); // Water needs in upper 8 bits, light needs in lower 8 bits
+            water_needs = (water_light >> 8), light_needs = water_light; // values defined in encoder ENUM
             ud_lcd_encoder(encoder_new_state);
         }
 
-        if (check_moisture){
+        if (check_moisture && check_humidity){ // Check plant needs water
             check_moisture = false;
+            check_humidity = false;
             moisture = adc_sample(1); // PC1 is channel 1 in ADC mux
             ud_lcd_moisture(moisture);
-        }
-
-        if(check_humidity){
-            check_humidity = false;
+            
             if (update_humidity()){
                 _delay_us(1);
                 humidity = get_humidity(); 
                 ud_lcd_humidity(humidity);                
-            }            
+            }   
+
+            if ((moisture < moist_threshold)&&(humidity < hum_threshold)){ // Adjust thresholds based on plant settings
+                sendOutput(led_select1, led_select2, w_pump_on = true, f_pump_on, grow_light); // Turn on water pump
+            }
         }
         
         if (check_npk){
@@ -189,20 +194,21 @@ int main(void) {
 
         if (fertilizer_complete){
             fertilizer_complete = false;
-            sendOutput(led_select1, led_select2, water, fertilizer = false); // Turn fertilizer pump off
+            sendOutput(led_select1, led_select2, w_pump_on, f_pump_on = false, grow_light); // Turn fertilizer pump off
         }
 
         if (water_complete){
             water_complete = false;
-            sendOutput(led_select1, led_select2, water = false, fertilizer); // Turn water pump off
+            sendOutput(led_select1, led_select2, w_pump_on = false, f_pump_on, grow_light); // Turn water pump off
         }
 
 
         if (rx_complete){               // Evaluate NPK values here 
             rx_complete = false;        // Lower flag to allow another data rx
             j = 0;                      // reset j to allow another data rx
-            fertilizer = fertilizer_needed(npk_buf[3], npk_buf[4], npk_buf[5]); // Evaluate NPK levels, determine if fertilizer is needed
-            ud_lcd_npk(npk_buf[3], npk_buf[4],npk_buf[5], fertilizer);
+            ud_lcd_npk(npk_buf[3], npk_buf[4],npk_buf[5]);
+            sendOutput(led_select1, led_select2, w_pump_on, 
+                       f_pump_on = fertilizer_needed(npk_buf[3], npk_buf[4], npk_buf[5]), grow_light); // Turn fertilizer on if returned true
         }
     }
     return 0;   /* never reached */
@@ -266,34 +272,43 @@ ISR (TIMER1_COMPA_vect) {
     moisture_counter++;
     lightsensor_counter++;
 
-    if (lightsensor_counter == LIGHT_COUNT){
+    if (lightsensor_counter == LIGHT_COUNT){ // Check light conditions
         check_light = true;
         lightsensor_counter = 0;
     }
 
-    if (moisture_counter == MOISTURE_COUNT){
+    if (moisture_counter == MOISTURE_COUNT){ // Check soil moisture
         check_moisture = true;
         moisture_counter = 0;
     }
 
-    if (npk_counter == NPK_COUNT){ // Counter value * 2.5 second timer = time interval to check NPK
+    if (npk_counter == NPK_COUNT){ // Check NPK levels
         check_npk = true;
         npk_counter = 0;
     }
 
-    if (humidity_counter == HUMIDITY_COUNT){
+    if (humidity_counter == HUMIDITY_COUNT){ // Check humidity
         check_humidity = true;
         humidity_counter = 0;
     }
 
-    if (fertilizer){
-        fertilizer = false; // Turn off fertilizer pump after returning from interrupt
+    if (f_pump_on){ // If fertilizer pump is on, this will turn it off after 2 seconds
+        f_pump_on = false; 
         fertilizer_complete = true; 
     }
 
-    if (water){
-        water = false; // Turn off water pump after returning from interrupt
+    if (w_pump_on){ // If water pump is on, this will turn it off after 2 seconds
+        w_pump_on = false; 
         water_complete = true;
+    }
+
+    if (test_flag){
+        PORTC |= 1 << PC0;      // Set PC0 to a 1
+        test_flag = 0;
+    }
+    else{
+        PORTC &= ~(1 << PC0);
+        test_flag = 1;
     }
 
 }
@@ -313,7 +328,3 @@ ISR(USART_RX_vect) // Interrupt when a byte enters the UDR0 register
         rx_complete = 1; // raise flag that data receive is complete
     }
 }
-
-// ISR(PCINT2_vect){
-//     changed = 1;
-// }
