@@ -15,14 +15,15 @@
 
 // Enum adds readability when selecting LEDs to turn on/off and which pumps to turn on/off
 enum REGOUT {
-    WATER = 8,
+    GROW_LIGHT = 7,
     FERTILIZER,
+    WATER,
     RED2,   
     YELLOW2, 
     GREEN2, 
     RED1,   
     YELLOW1,
-    GREEN1 
+    GREEN1,
 };
 
 /*
@@ -30,7 +31,7 @@ The sendOutput function is the function that handles taking the 16-bit "outputs"
 representing the 16 bits we want to push into the shift registers,
 and sending those bits 1 by 1 into the shift registers with the appropriate clock pulses at the correct time.
 */
-void sendOutput(enum REGOUT, enum REGOUT, _Bool, _Bool);
+void sendOutput(enum REGOUT, enum REGOUT, _Bool, _Bool, _Bool);
 void init_reg();
 
 

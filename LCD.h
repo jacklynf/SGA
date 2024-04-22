@@ -211,7 +211,7 @@ static inline void writePixel(int16_t x, int16_t y, uint16_t color) {
 void init_base_screen(uint8_t);
 void ud_lcd_light(int);
 void ud_lcd_humidity(uint16_t);
-void ud_lcd_npk(unsigned char, unsigned char, unsigned char, _Bool);
+void ud_lcd_npk(unsigned char, unsigned char, unsigned char);
 void ud_lcd_moisture(unsigned char);
 void ud_lcd_encoder(uint8_t);
 

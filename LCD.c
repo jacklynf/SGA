@@ -290,7 +290,7 @@ void ud_lcd_moisture(unsigned char moisture){
   printString(buf);
 }
 
-void ud_lcd_npk(unsigned char nitrogen, unsigned char phosphorus, unsigned char potassium, _Bool fertilizer){
+void ud_lcd_npk(unsigned char nitrogen, unsigned char phosphorus, unsigned char potassium){
   char buf[16];
   
   setTextSize(2);
