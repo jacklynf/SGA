@@ -536,3 +536,4 @@ void printString(const char* string){
   */
   /**********************************************************************/
   void setTextWrap(bool w) { wrap = w; }
+

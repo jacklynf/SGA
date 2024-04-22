@@ -1,4 +1,6 @@
 #include "LCD.h"
+#include "LCD_GFX.h"
+#include "encoder.h"
 
 //LCD Variables
 int16_t _width;       ///< Display width as modified by current rotation
@@ -187,4 +189,136 @@ void setAddrWindow(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h) {
 uint8_t spiRead(void) {
     SPDR = ((uint8_t)0);
     return SPDR;
+}
+
+void init_base_screen(uint8_t user_setting){
+  char buf[16];
+  setTextSize(3);
+  setCursor(50,5);
+  printString("SGA Readings");
+  setCursor(70,35);
+  setTextSize(2);
+  printString("Luminosity: ");   
+  setCursor(80,60);
+  setTextSize(2);
+  printString("Humidity: "); 
+  setCursor(50,85);
+  printString("Soil moisture: ");
+  setCursor(50,110);
+  printString("N: ");
+  setCursor(125,110);
+  printString("P: ");
+  setCursor(200,110);
+  printString("K: ");
+  setTextSize(3);
+  setCursor(30,140);
+  printString("Plant Settings");
+  ud_lcd_encoder(user_setting);
+}
+
+void ud_lcd_encoder(uint8_t user_setting){
+  char * climate;
+  char * settings;
+  uint8_t center;
+
+  switch (user_setting){
+    case TROPICAL: 
+      climate = "Tropical Climate";
+      settings = "Humid, sunny";
+      center = 75;
+      break;
+    case DESERT:
+      climate = "  Desert Climate";
+      settings = "Dry, sunny";
+      center = 100;
+      break;
+    case TEMPERATE:
+      climate = "Temperate Climate";
+      settings = "Humid, low light";
+      center = 50;
+      break;
+    case ALPINE:
+      climate = "  Alpine Climate";
+      settings = "Dry, moderate light";
+      center = 40;
+      break;
+  }
+  fillRect(5, 170, 300, 50, ILI9341_DARKGREEN);
+  setTextSize(2);
+  setCursor(50,170);
+  printString(climate);
+  setCursor(center,195);
+  printString(settings);
+
+}
+
+void ud_lcd_light(int lum){
+  char buf[16];
+  setTextSize(2);        
+  setCursor(210,35);
+  fillRect(210, 35, 100, 25, ILI9341_DARKGREEN);
+  if (lum == 0){
+      printString("saturated.");
+  }else{
+      itoa(lum, buf, 10); 
+      printString(buf);
+  }
+}
+
+void ud_lcd_humidity(uint16_t humidity){
+  char buf[16];
+  
+  // Clear previous values
+  fillRect(200, 60, 50, 25, ILI9341_DARKGREEN);
+  itoa(humidity, buf, 10); 
+  setTextSize(2);
+  setCursor(200,60);
+  printString(buf);
+}
+
+void ud_lcd_moisture(unsigned char moisture){
+  char buf[16];
+
+  fillRect(225, 85, 50, 25, ILI9341_DARKGREEN);
+  
+  setTextSize(2);
+
+  // setCursor(50,85);
+  // printString("Soil moisture: ");
+  itoa(moisture, buf, 10);
+  setCursor(225,85);
+  printString(buf);
+}
+
+void ud_lcd_npk(unsigned char nitrogen, unsigned char phosphorus, unsigned char potassium, _Bool fertilizer){
+  char buf[16];
+  
+  setTextSize(2);
+  // Clear previous values 
+  fillRect(75, 110, 50, 25, ILI9341_DARKGREEN);
+  fillRect(150, 110, 50, 25, ILI9341_DARKGREEN);
+  fillRect(225, 110, 50, 25, ILI9341_DARKGREEN);
+  
+  // Print nitrogen
+  itoa(nitrogen, buf, 10); 
+  setCursor(75,110);
+  printString(buf);
+
+  // Print phosphorus
+  itoa(phosphorus, buf, 10);
+  // setCursor(125,110);
+  // printString("P: ");
+  setCursor(150,110);
+  printString(buf);
+
+  // Print potassium
+  itoa(potassium, buf, 10);
+  // setCursor(200,110);
+  // printString("K: ");
+  setCursor(225,110);
+  printString(buf);
+}
+
+void ud_lcd_liquids(uint8_t water, uint8_t nutrients){
+
 }

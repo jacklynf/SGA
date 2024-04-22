@@ -37,6 +37,7 @@
 #include <stdbool.h>
 #include <avr/interrupt.h>
 #include <stddef.h>
+#include <stdio.h>
 
 #include "shift_register_control.h"
 #include "encoder.h"
@@ -46,11 +47,13 @@
 #include "soil_moisture.h"
 #include "i2c.h"
 #include "light_sensor.h"
+#include "LCD.h"
+#include "LCD_GFX.h"
 
 // How often to check sensors. 
-// Timer interrupts every 2 seconds, so all count values are multiplied by 2 seconds.
+// Timer interrupts every 2.5 seconds, so all count values are multiplied by 2.5 seconds.
 #define MOISTURE_COUNT 2 
-#define HUMIDITY_COUNT 2
+#define HUMIDITY_COUNT 1
 #define      NPK_COUNT 2
 #define    LIGHT_COUNT 1
 
@@ -80,17 +83,14 @@ volatile uint8_t check_humidity = 0; // Humidity flag
 volatile uint8_t check_moisture = 0; // Soil moisture flag
 volatile uint8_t moisture_counter = 0; // Soil moisture interrupt counter
 volatile unsigned char moisture = 0;
-
-
 ///////////////  End volatile variables
-
 
 int main(void) {    
     sei(); // Enable Global Interrupts
     
     // Initialize i2c, registers, ports, and sensors    
     i2c_init(BDIV);
-    init_encoder();
+    uint8_t encoder = init_encoder();
     init_timer();
     init_reg();
     init_npk();
@@ -101,88 +101,62 @@ int main(void) {
     setRotation(3);
     fillScreen(ILI9341_DARKGREEN);
 
-    fillRect(250, 30, 30, 50, ILI9341_RED);
+    // fillRect(250, 30, 30, 50, ILI9341_RED);
 
-    drawLine(100, 100, 200, 200, ILI9341_ORANGE);
+    // drawLine(100, 100, 200, 200, ILI9341_ORANGE);
 
 
-    setCursor(50,50);
+    setCursor(25,75);
     setTextColor(ILI9341_ORANGE);
     setTextSize(3);
-    const char test[] = "Hello World!";
-    printString(test);
+    printString("Smart Gardening");
+    setCursor(75,125);
+    printString("Assistant");
     // End initialization
 
-    uint8_t i;
     uint16_t humidity = 0;
     uint8_t water_needs, light_needs;
     uint16_t water_light;
 
     enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
    
-    led_select1 = GREEN1;
-    led_select2 = RED2;
-    sendOutput(led_select1, led_select2, water, fertilizer);
-    _delay_ms(1000);
+    // led_select1 = GREEN1;
+    // led_select2 = GREEN2;
+    // sendOutput(led_select1, led_select2, water, fertilizer);
+    _delay_ms(2000);
+    fillScreen(ILI9341_DARKGREEN);
 
 
    // Begin i2c communication with light sensor
    // https://github.com/adafruit/Adafruit_TSL2591_Library/blob/master/Adafruit_TSL2591.cpp#L467 
     uint8_t dev_id;
+    char buf[16];
     
     if ((dev_id = begin_lightsensor()) == 0x50){
-        enable_lightsensor();
-        configure_lightsensor();
+        if (!enable_lightsensor()){
+            if (!configure_lightsensor()){
+                setCursor(55,50);
+                printString("All sensors");
+                setCursor(90,100);
+                printString("enabled.");
+            }
+        }
     }
-      
-    // uint32_t light = get_luminosity();
-    // if ((light > 0 ) && (light < 100)){
-    // led_select1 = GREEN1;
-    // led_select2 = GREEN2;
-    // sendOutput(led_select1, led_select2, water, fertilizer);
-    // }
-    // else if ((light == 0 )){
-    // led_select1 = RED1;
-    // led_select2 = RED2;
-    // sendOutput(led_select1, led_select2, water, fertilizer);
-    // }
-    // else if ((light > 100 )){
-    // led_select1 = YELLOW1;
-    // led_select2 = YELLOW2;
-    // sendOutput(led_select1, led_select2, water, fertilizer);
-    // }
-    // _delay_ms(2000);
+    _delay_ms(2000);
+    fillScreen(ILI9341_DARKGREEN); 
+    init_base_screen(encoder);
 
     DDRC |= (1 << PD0);
 
-    uint32_t lum;
-    uint16_t full, ir;
-    float light;
-    while (1){
-        lum = get_luminosity();
-        ir = lum >> 16;
-        full = lum & 0xFFFF;
-        light = calculate_lux(full, ir);
-        // _delay_ms(1000);    
-        if ((light >= 0 ) && (light < 1)){
-        led_select1 = GREEN1;
-        led_select2 = GREEN2;
-        sendOutput(led_select1, led_select2, water, fertilizer);
-        }
-        else if ((light >= 1)&&(light < 2)){
-        led_select1 = RED1;
-        led_select2 = RED2;
-        sendOutput(led_select1, led_select2, water, fertilizer);
-        }
-        else if ((light > 2 )){
-        led_select1 = YELLOW1;
-        led_select2 = YELLOW2;
-        sendOutput(led_select1, led_select2, water, fertilizer);
-        }
-
+    uint16_t lum;
+    while (1){        
+        _delay_ms(250);
 
         if (check_light){
             check_light = false;
+            lum = get_luminosity(); 
+            ud_lcd_light(lum);
+            // if (lum < 100)
         }
 
         if(encoder_changed) { // Set plant needs based on user input
@@ -190,52 +164,27 @@ int main(void) {
             water = true;
             water_light = user_input(encoder_new_state);
             water_needs = (water_light >> 8), light_needs = water_light;
+            ud_lcd_encoder(encoder_new_state);
         }
 
         if (check_moisture){
             check_moisture = false;
             moisture = adc_sample(1); // PC1 is channel 1 in ADC mux
+            ud_lcd_moisture(moisture);
         }
 
         if(check_humidity){
             check_humidity = false;
             if (update_humidity()){
                 _delay_us(1);
-                humidity = get_humidity();///10; 
-            }
-            // else 
-            //     humidity = 999; // Else update did not work, no humidity value update
-
-            // if (humidity == 0){
-            //     led_select1 = RED1;
-            //     led_select2 = RED1;
-            //     sendOutput(led_select1, led_select2, water, fertilizer);
-            // }
-            // else if ((humidity > 0) &&(humidity <= 10)){
-            //     led_select1 = RED1;
-            //     led_select2 = RED2;
-            //     sendOutput(led_select1, led_select2, water, fertilizer);
-            // }
-            // else if ((humidity > 10) && (humidity <= 50)){ 
-            //     led_select1 = YELLOW1;
-            //     led_select2 = GREEN2;
-            //     sendOutput(led_select1, led_select2, water, fertilizer);
-            // }            
-            // else if ((humidity >50) && (humidity <= 100)){
-            //     led_select1 = GREEN1;
-            //     led_select2 = GREEN2;
-            //     sendOutput(led_select1, led_select2, water, fertilizer);
-            // }       
-            // else{
-            //     led_select1 = YELLOW1;
-            //     led_select2 = YELLOW1;
-            //     sendOutput(led_select1, led_select2, water, fertilizer);
-            // }     
+                humidity = get_humidity(); 
+                ud_lcd_humidity(humidity);                
+            }            
         }
         
         if (check_npk){
             check_npk = false;
-            get_npk(); // Request NPK values from soil sensor
+            get_npk(); // Request NPK values from soil sensor            
         }
 
         if (fertilizer_complete){
@@ -249,11 +198,11 @@ int main(void) {
         }
 
 
-        if (rx_complete){               // Evaluate NPK values here
+        if (rx_complete){               // Evaluate NPK values here 
             rx_complete = false;        // Lower flag to allow another data rx
             j = 0;                      // reset j to allow another data rx
             fertilizer = fertilizer_needed(npk_buf[3], npk_buf[4], npk_buf[5]); // Evaluate NPK levels, determine if fertilizer is needed
-            
+            ud_lcd_npk(npk_buf[3], npk_buf[4],npk_buf[5], fertilizer);
         }
     }
     return 0;   /* never reached */
@@ -327,7 +276,7 @@ ISR (TIMER1_COMPA_vect) {
         moisture_counter = 0;
     }
 
-    if (npk_counter == NPK_COUNT){ // Counter value * 2 second timer = time interval to check NPK
+    if (npk_counter == NPK_COUNT){ // Counter value * 2.5 second timer = time interval to check NPK
         check_npk = true;
         npk_counter = 0;
     }
@@ -347,25 +296,18 @@ ISR (TIMER1_COMPA_vect) {
         water_complete = true;
     }
 
-    if (test_flag){
-        PORTC &= ~(1<<PC0);
-        test_flag=0;
-    }
-    else{
-        PORTC |= 1<<PC0;
-        test_flag=1;
-    }
-
 }
 
 
 ISR(USART_RX_vect) // Interrupt when a byte enters the UDR0 register
 {
     char ch;
-         
-    ch = UDR0; // read the received character from the register
+
+    ch = UDR0;      // read the received character from the register
     npk_buf[j] = ch; // assign the character to an index
-    j++;            // increment j to scroll through intBuf array
+    j++;            // increment j to iterate through npk_buf array
+
+    
 
     if (j == 8){   
         rx_complete = 1; // raise flag that data receive is complete

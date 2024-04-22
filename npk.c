@@ -26,22 +26,16 @@ void get_npk(){
     int i = 0;
 
     PORTD |= RE_DE; // Set DE bit on transceiver high to TX to it
-
-    while (i  < 8){
+    cli();
+    while (i < 8){
         tx_char(request_npk[i]);
-        ++i;
+        i++;
     }
+    sei();
     while ( !(UCSR0A & (1 << TXC0))); // Wait until all bytes are sent from the atmega
     PORTD &= ~RE_DE; // Set RE bit on transceiver low (active low) to RX from it
 }
 
-
-/*
-Last measured NPK values:
-    Phosphorous: >= 0xe0, < 0xf0 (somewhere between 224 and 240 mg)
-    Nitrogen: 0 (no reading)
-    Potassium: >= 0, < 0x03 (somewhere around 3mg)
-*/
 _Bool fertilizer_needed(unsigned char nitrogen, unsigned char phosphorus, unsigned char potassium){
     _Bool fert_needed = false;
     unsigned char nit_thresh = 0x20, phos_thresh = 0xa0, pot_thresh = 0x30; 

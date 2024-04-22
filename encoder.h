@@ -20,7 +20,7 @@ enum PLANT_NEEDS{
 enum LIGHT_LEVELS{LOW, MODERATE,HIGH};
 enum WATER_LEVELS{DRY,HUMID};
 
-void init_encoder();
+uint8_t init_encoder();
 void encoderEnable();
 void encoderDisable();
 uint16_t user_input(uint8_t);

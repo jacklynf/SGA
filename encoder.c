@@ -2,7 +2,7 @@
 #include <avr/interrupt.h>
 #include "encoder.h"
 
-void init_encoder(){
+uint8_t init_encoder(){
     DDRC   &= ~(ENCODERA|ENCODERB); //Set EncoderA and EncoderB pins as inputs (constants defined in encoder.h)
     PORTC  |=  (ENCODERA|ENCODERB); //Enable Pull-Up resistor on EncoderA and EncoderB
     PCICR  |=  (1 << PCIE1); //Enable Pin Change interrupts on PORTC
@@ -24,7 +24,9 @@ void init_encoder(){
     else                                //If encoder input is 11
 	    encoder_old_state = 3;
 
-    encoder_old_state = encoder_new_state;
+    encoder_new_state = encoder_old_state;
+
+    return encoder_new_state;
 }
 
 uint16_t user_input(uint8_t encoder_new_state){

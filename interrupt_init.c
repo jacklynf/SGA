@@ -16,10 +16,7 @@ void init_timer(){ // Set up timer to check sensors
     
 
     // Using clock prescalar 1024: timer needs to count
-    // to 14,400 to reach 2s with 7.3728 MHz clock 
-    OCR1A = 14400; // 2 seconds
+    // to 18,000 to reach 2.5s with 7.3728 MHz clock 
+    OCR1A = 18000; // 2.5 seconds
     // OCR1A = 36000;
-
-    TCCR2B |= (1 << CS11)|(1 << CS10); // Set 64 prescaler
-    OCR2A = 59;
 }
