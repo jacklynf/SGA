@@ -205,6 +205,8 @@ void init_base_screen(uint8_t user_setting){
   setCursor(80,60);
   setTextSize(2);
   printString("Humidity: "); 
+  setCursor(240,60);
+  printString("%");
 
   setCursor(50,85);
   printString("Soil moisture: ");
@@ -217,16 +219,16 @@ void init_base_screen(uint8_t user_setting){
   printString("K: ");
 
 
-  setCursor(30,135);
+  setCursor(10,135);
   printString("H20: ");
 
-  setCursor(90,135);
+  setCursor(100,135);
   printString("%");
 
-  setCursor(110,135);  
+  setCursor(130,135);  
   printString("Nutrients: ");
 
-  setCursor(245,135);
+  setCursor(285,135);
   printString("%");
 
 
@@ -265,9 +267,9 @@ void ud_lcd_encoder(uint8_t user_setting){
   }
   fillRect(5, 190, 300, 50, ILI9341_DARKGREEN);
   setTextSize(2);
-  setCursor(50,190);
+  setCursor(50,200);
   printString(climate);
-  setCursor(center,215);
+  setCursor(center,225);
   printString(settings);
 
 }
@@ -289,7 +291,7 @@ void ud_lcd_humidity(uint16_t humidity){
   char buf[16];
   
   // Clear previous values
-  fillRect(200, 60, 50, 25, ILI9341_DARKGREEN);
+  fillRect(200, 60, 35, 25, ILI9341_DARKGREEN);
   itoa(humidity, buf, 10); 
   setTextSize(2);
   setCursor(200,60);
@@ -336,13 +338,21 @@ void ud_lcd_liquids(uint8_t water, uint8_t nutrients){
   char buf[16];
   setTextSize(2);
 
-  fillRect(60, 135, 75, 30, ILI9341_DARKGREEN);
-  itoa(water, buf, 10);
-  setCursor(60,135);
-  printString(buf);
+  if (water == NULL){
+    fillRect(250, 135, 35, 25, ILI9341_DARKGREEN);
+    itoa(nutrients, buf, 10);
+    setCursor(250,135);
+    printString(buf);
+  }
 
-  fillRect(175, 135, 75, 30, ILI9341_DARKGREEN);
-  itoa(nutrients, buf, 10);
-  setCursor(175,135);
-  printString(buf);
+  if (nutrients == NULL){
+    fillRect(60, 135, 35, 25, ILI9341_DARKGREEN);
+    itoa(water, buf, 10);
+    setCursor(60,135);
+    printString(buf);
+  }
+
+
+
+
 }

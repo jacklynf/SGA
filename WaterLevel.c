@@ -13,7 +13,8 @@ void getHigh12SectionValue(uint8_t channel)
   uint8_t b[1];
   i2c_io(MUX_ADDR, buff, 1, NULL, 0);
   _delay_ms(1);
-  i2c_io((0x78 << 1), NULL, 0, high_data, 12);    
+  i2c_io((0x78 << 1), NULL, 0, high_data, 12);
+  close_all();    
 }
 
 void getLow8SectionValue(uint8_t channel)
@@ -23,6 +24,7 @@ void getLow8SectionValue(uint8_t channel)
   i2c_io(MUX_ADDR, buff, 1, NULL, 0);
   _delay_ms(1);
   i2c_io((0x77 << 1), NULL, 0, low_data, 8);
+  close_all(); 
 }
 
 

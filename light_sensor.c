@@ -63,6 +63,8 @@ uint16_t get_luminosity(){
                 // Signal an overflow
                 return 0;
             }
+            x <<= 16;
+            x |= y;
             return x;            
         }
     }

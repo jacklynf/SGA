@@ -61,8 +61,8 @@ void compute_needs();
 #define        NPK_COUNT 2
 #define      LIGHT_COUNT 2
 #define        MUX_COUNT 2
-#define      WATER_COUNT 2
-#define FERTILIZER_COUNT 2
+#define      WATER_COUNT 1
+#define FERTILIZER_COUNT 3
 
 #define BDIV (F_CPU / 100000 - 16) / 2 + 1    // Puts I2C rate just below 100kHz
 
@@ -182,7 +182,9 @@ int main(void) {
     char buf[16];
     while (1){        
         if (check_fert){
+            check_fert = 0;
             fert_lev = checkWaterLevel(TCA_CHANNEL_2);
+            ud_lcd_liquids(water_lev, NULL);
             if ((fert_lev < 50) && (fert_lev >= 25))
                 sendOutput(led_select1 = YELLOW1, led_select2, w_pump_on, f_pump_on, grow_light);
             else if (fert_lev < 25)
@@ -192,7 +194,9 @@ int main(void) {
         }
 
         if (check_water){
+            check_water = 0;
             water_lev = checkWaterLevel(TCA_CHANNEL_0);
+            ud_lcd_liquids(NULL, fert_lev);
             if ((water_lev < 50) && (water_lev >= 25))
                 sendOutput(led_select1 = YELLOW2, led_select2, w_pump_on, f_pump_on, grow_light);
             else if (water_lev < 25)
@@ -219,7 +223,7 @@ int main(void) {
             ud_lcd_encoder(encoder_new_state);
         }
 
-        if (check_moisture && check_humidity){ // Check plant needs water
+        if (check_moisture && check_humidity){ // Check if plant needs water
             check_moisture = false;
             check_humidity = false;
             moisture = adc_sample(1); // PC1 is channel 1 in ADC mux
