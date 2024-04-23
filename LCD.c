@@ -223,10 +223,10 @@ void init_base_screen(uint8_t user_setting){
   setCursor(90,135);
   printString("%");
 
-  setCursor(100,135);  
+  setCursor(110,135);  
   printString("Nutrients: ");
 
-  setCursor(215,135);
+  setCursor(245,135);
   printString("%");
 
 
