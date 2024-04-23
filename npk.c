@@ -1,8 +1,11 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <stdbool.h>
+#include <util/delay.h>
 
 #include "npk.h"
+
+uint8_t initial_tx = 0;
 
 void init_npk(){
     UBRR0   =  MYUBRR;                                       // Set baud rate
@@ -31,9 +34,13 @@ void get_npk(){
         tx_char(request_npk[i]);
         i++;
     }
-    sei();
+    
     while ( !(UCSR0A & (1 << TXC0))); // Wait until all bytes are sent from the atmega
+    if (initial_tx)
+        _delay_ms(4);    
+    initial_tx = 1;
     PORTD &= ~RE_DE; // Set RE bit on transceiver low (active low) to RX from it
+    sei();
 }
 
 _Bool fertilizer_needed(unsigned char nitrogen, unsigned char phosphorus, unsigned char potassium){

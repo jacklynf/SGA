@@ -50,14 +50,19 @@
 #include "LCD.h"
 #include "LCD_GFX.h"
 #include "i2c_mux.h"
+#include "WaterLevel.h"
+
+void compute_needs();
 
 // How often to check sensors. 
 // Timer interrupts every 2 seconds, so all count values are multiplied by 2 seconds.
-#define MOISTURE_COUNT 1
-#define HUMIDITY_COUNT 1
-#define      NPK_COUNT 2
-#define    LIGHT_COUNT 1
-#define      MUX_COUNT 2
+#define   MOISTURE_COUNT 2
+#define   HUMIDITY_COUNT 3
+#define        NPK_COUNT 2
+#define      LIGHT_COUNT 2
+#define        MUX_COUNT 2
+#define      WATER_COUNT 2
+#define FERTILIZER_COUNT 2
 
 #define BDIV (F_CPU / 100000 - 16) / 2 + 1    // Puts I2C rate just below 100kHz
 
@@ -83,14 +88,37 @@ volatile uint8_t check_humidity = 0; // Humidity flag
 volatile uint8_t check_moisture = 0; // Soil moisture flag
 volatile uint8_t moisture_counter = 0; // Soil moisture interrupt counter
 volatile unsigned char moisture = 0;
-///////////////  End volatile variables
 
-
-
+volatile uint8_t check_water = 0;
+volatile uint8_t check_fert = 0;
+volatile uint8_t water_counter = 0, fertilizer_counter = 0;
 
 volatile uint8_t test_flag = 0;
+///////////////  End volatile variables
 
+uint16_t lum, humidity = 0, water_light;
+uint8_t water_needs, light_needs, dev_id, moist_threshold, humidity_threshold, light_threshold;
 
+void compute_needs(){ // Determine watering & grow light needs based on user input
+    if (water_needs == HUMID){
+        moist_threshold = 200;
+        humidity_threshold = 25;
+    }
+    else if (water_needs == DRY){
+        moist_threshold = 100;
+        humidity_threshold = 10;
+    }
+
+    if (light_needs == HIGH){
+        light_threshold = 400;
+    }
+    else if (light_needs == MODERATE){
+        light_threshold = 200;
+    }
+    else if (light_needs == LOW){
+        light_threshold = 75;
+    }
+}
 
 
 int main(void) {    
@@ -110,13 +138,11 @@ int main(void) {
     LCD_Initialize();
     setRotation(3);
     fillScreen(ILI9341_DARKGREEN);
-    // fillRect(250, 30, 30, 50, ILI9341_RED);
+    // fillRect(250, 30, 30, 50, ILI9341_R  ED);
     // drawLine(100, 100, 200, 200, ILI9341_ORANGE);
 
     // End initialization
 
-    uint16_t lum, humidity = 0, water_light;
-    uint8_t water_needs, light_needs, dev_id, moist_threshold = 200, hum_threshold = 30;
     _Bool grow_light = false;
     enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
     led_select1 = GREEN1, led_select2 = GREEN2;
@@ -149,15 +175,37 @@ int main(void) {
     _delay_ms(2000); // Pause on sensor screen
     fillScreen(ILI9341_DARKGREEN); 
     init_base_screen(encoder);
-    
+
+    uint16_t counter = 0;
+    int water_lev = -1;
+    int fert_lev = -1;
+    char buf[16];
     while (1){        
-        _delay_ms(250);
+        if (check_fert){
+            fert_lev = checkWaterLevel(TCA_CHANNEL_2);
+            if ((fert_lev < 50) && (fert_lev >= 25))
+                sendOutput(led_select1 = YELLOW1, led_select2, w_pump_on, f_pump_on, grow_light);
+            else if (fert_lev < 25)
+                sendOutput(led_select1 = RED1, led_select2, w_pump_on, f_pump_on, grow_light);
+            else 
+                sendOutput(led_select1 = GREEN1, led_select2, w_pump_on, f_pump_on, grow_light);
+        }
+
+        if (check_water){
+            water_lev = checkWaterLevel(TCA_CHANNEL_0);
+            if ((water_lev < 50) && (water_lev >= 25))
+                sendOutput(led_select1 = YELLOW2, led_select2, w_pump_on, f_pump_on, grow_light);
+            else if (water_lev < 25)
+                sendOutput(led_select1 = RED2, led_select2, w_pump_on, f_pump_on, grow_light);
+            else 
+                sendOutput(led_select1 = GREEN2, led_select2, w_pump_on, f_pump_on, grow_light);
+        }
 
         if (check_light){ // Check if grow light is needed
             check_light = false;
             lum = get_luminosity();
             ud_lcd_light(lum);
-            if (lum < 100) // Adjust this value based on user settings
+            if (lum < light_threshold) // Adjust this value based on user settings
                 sendOutput(led_select1, led_select2, w_pump_on, f_pump_on, grow_light = true); // Turn grow light on if light is low 
             else           
                 sendOutput(led_select1, led_select2, w_pump_on, f_pump_on, grow_light = false); // Turn grow light on if light is low
@@ -167,6 +215,7 @@ int main(void) {
             encoder_changed = false;  
             water_light = user_input(encoder_new_state); // Water needs in upper 8 bits, light needs in lower 8 bits
             water_needs = (water_light >> 8), light_needs = water_light; // values defined in encoder ENUM
+            compute_needs();
             ud_lcd_encoder(encoder_new_state);
         }
 
@@ -182,7 +231,7 @@ int main(void) {
                 ud_lcd_humidity(humidity);                
             }   
 
-            if ((moisture < moist_threshold)&&(humidity < hum_threshold)){ // Adjust thresholds based on plant settings
+            if ((moisture < moist_threshold)&&(humidity < humidity_threshold)){ // Adjust thresholds based on plant settings
                 sendOutput(led_select1, led_select2, w_pump_on = true, f_pump_on, grow_light); // Turn on water pump
             }
         }
@@ -218,8 +267,8 @@ ISR(PCINT1_vect) //Interrupt vector for PORTC
 {
     //Begin code for Rotary Encoder related Interrupt Handling
     encoder_input = PINC & (ENCODERA|ENCODERB);    //Read inputs simultaneously
-    encoder_A = encoder_input & ENCODERA;     //Isolate EncoderA input
-    encoder_B = encoder_input & ENCODERB;     //Isolate EncoderB input
+    encoder_A = encoder_input & ENCODERA;          //Isolate EncoderA input
+    encoder_B = encoder_input & ENCODERB;          //Isolate EncoderB input
     if (encoder_old_state == TROPICAL) {
         if(encoder_A){
             //Clockwise Rotation
@@ -271,6 +320,18 @@ ISR (TIMER1_COMPA_vect) {
     humidity_counter++;
     moisture_counter++;
     lightsensor_counter++;
+    water_counter++;
+    fertilizer_counter++;
+
+    if (water_counter == WATER_COUNT){
+        check_water=true;
+        water_counter = 0;
+    }
+
+    if (fertilizer_counter == FERTILIZER_COUNT){
+        check_fert = true;
+        fertilizer_counter=0;
+    }
 
     if (lightsensor_counter == LIGHT_COUNT){ // Check light conditions
         check_light = true;
@@ -322,7 +383,6 @@ ISR(USART_RX_vect) // Interrupt when a byte enters the UDR0 register
     npk_buf[j] = ch; // assign the character to an index
     j++;            // increment j to iterate through npk_buf array
 
-    
 
     if (j == 8){   
         rx_complete = 1; // raise flag that data receive is complete

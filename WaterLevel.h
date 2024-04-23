@@ -13,11 +13,11 @@
 #define ATTINY2_LOW_ADDR 0x77
 
 
-uint8_t checkWaterLevel(void);
+uint8_t checkWaterLevel(uint8_t);
 
-void getLow8SectionValue(void);
+void getLow8SectionValue(uint8_t);
 
-void getHigh12SectionValue(void);
+void getHigh12SectionValue(uint8_t);
 
 
 #endif

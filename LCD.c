@@ -193,25 +193,45 @@ uint8_t spiRead(void) {
 
 void init_base_screen(uint8_t user_setting){
   char buf[16];
+
   setTextSize(3);
   setCursor(50,5);
   printString("SGA Readings");
+
   setCursor(70,35);
   setTextSize(2);
-  printString("Luminosity: ");   
+  printString("Luminosity: ");  
+
   setCursor(80,60);
   setTextSize(2);
   printString("Humidity: "); 
+
   setCursor(50,85);
   printString("Soil moisture: ");
+
   setCursor(50,110);
   printString("N: ");
   setCursor(125,110);
   printString("P: ");
   setCursor(200,110);
   printString("K: ");
+
+
+  setCursor(30,135);
+  printString("H20: ");
+
+  setCursor(90,135);
+  printString("%");
+
+  setCursor(100,135);  
+  printString("Nutrients: ");
+
+  setCursor(215,135);
+  printString("%");
+
+
   setTextSize(3);
-  setCursor(30,140);
+  setCursor(30,165);
   printString("Plant Settings");
   ud_lcd_encoder(user_setting);
 }
@@ -243,11 +263,11 @@ void ud_lcd_encoder(uint8_t user_setting){
       center = 40;
       break;
   }
-  fillRect(5, 170, 300, 50, ILI9341_DARKGREEN);
+  fillRect(5, 190, 300, 50, ILI9341_DARKGREEN);
   setTextSize(2);
-  setCursor(50,170);
+  setCursor(50,190);
   printString(climate);
-  setCursor(center,195);
+  setCursor(center,215);
   printString(settings);
 
 }
@@ -282,9 +302,6 @@ void ud_lcd_moisture(unsigned char moisture){
   fillRect(225, 85, 50, 25, ILI9341_DARKGREEN);
   
   setTextSize(2);
-
-  // setCursor(50,85);
-  // printString("Soil moisture: ");
   itoa(moisture, buf, 10);
   setCursor(225,85);
   printString(buf);
@@ -306,19 +323,26 @@ void ud_lcd_npk(unsigned char nitrogen, unsigned char phosphorus, unsigned char 
 
   // Print phosphorus
   itoa(phosphorus, buf, 10);
-  // setCursor(125,110);
-  // printString("P: ");
   setCursor(150,110);
   printString(buf);
 
   // Print potassium
   itoa(potassium, buf, 10);
-  // setCursor(200,110);
-  // printString("K: ");
   setCursor(225,110);
   printString(buf);
 }
 
 void ud_lcd_liquids(uint8_t water, uint8_t nutrients){
+  char buf[16];
+  setTextSize(2);
 
+  fillRect(60, 135, 75, 30, ILI9341_DARKGREEN);
+  itoa(water, buf, 10);
+  setCursor(60,135);
+  printString(buf);
+
+  fillRect(175, 135, 75, 30, ILI9341_DARKGREEN);
+  itoa(nutrients, buf, 10);
+  setCursor(175,135);
+  printString(buf);
 }

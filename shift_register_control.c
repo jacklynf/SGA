@@ -21,9 +21,9 @@ void sendOutput(enum REGOUT led_select1, enum REGOUT led_select2,
 
     for(i = 0; i < 16; i++){ 
         if ((i == led_select1) || (i == led_select2) || // Select which 2 LEDs will be on
-            ((i == water_pump) && (water_on == true)) || // Turn on water
-            ((i == fertilizer_pump) && (fertilizer_on == true)) ||
-            ((i == GROW_LIGHT) && (light_on == true))) // Turn on fertilizer
+            ((i != water_pump) && (water_on == true)) || // Turn on water
+            ((i != fertilizer_pump) && (fertilizer_on == true)) ||
+            ((i != GROW_LIGHT) && (light_on == true))) // Turn on fertilizer
             PORTD |= SERIAL_DATA_OUT;
         else
             PORTD &= ~SERIAL_DATA_OUT;

@@ -1,11 +1,14 @@
 #include "i2c_mux.h"
+#include "WaterLevel.h"
 #include <util/delay.h>
 #include <stddef.h>
 
+#define SENSOR_ADDR 0X78
+
 void init_mux(){
+    open_channel(TCA_CHANNEL_0); 
+    open_channel(TCA_CHANNEL_2); 
     close_all(); // Set baseline
-    // open_channel(TCA_CHANNEL_0); 
-    // open_channel(TCA_CHANNEL_2); 
 }
 
 void open_channel(uint8_t channel){
@@ -30,10 +33,10 @@ void close_all(){ // Base state for i2c mux
     i2c_io(MUX_ADDR, channels, 1, NULL, 0);    
 }
 
-uint8_t read_level(uint8_t channel){ // Read 1 sensor from the mux at a time
-    uint8_t buff[1];
-    _delay_ms(10);
-    if (!i2c_io(MUX_READ, channel, 1, buff, 1)){
+int read_level(uint8_t channel){ // Read 1 sensor from the mux at a time
+    uint8_t buff[2] = {channel, SENSOR_ADDR};
+    // _delay_ms(10);
+    if (!i2c_io(MUX_ADDR, buff, 2, buff, 1)){
         close_channel(channel);
         return buff[0];
     }
