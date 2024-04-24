@@ -1,72 +1,105 @@
 // Code adapted from Adafruit GitHub library
 // https://github.com/adafruit/Adafruit_TSL2591_Library/blob/master/Adafruit_TSL2591.cpp#L467 
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include <util/delay.h>
-#include <stddef.h>
 
 #include "light_sensor.h"
-#include "i2c.h"
-
-#define LIGHTSENSOR_ADDR (0x29 << 1)
 
 // Initiate communication with the light sensor to get device ID
 // First write request to sensor, then read its response
-uint8_t init_lightsensor(){
-    uint8_t wb[] = {TSL2591_COMMAND_BIT | TSL2591_REGISTER_DEVICE_ID}; 
-    uint8_t read_status;
-
-    if ((read_status = i2c_io(LIGHTSENSOR_ADDR, wb, 1, wb, 1)) != 0)
+uint8_t init_lightsensor() {
+    buff[0] = (TSL2591_COMMAND_BIT | TSL2591_REGISTER_DEVICE_ID); 
+    if ((read_status = i2c_io(LIGHTSENSOR_ADDR, buff, 1, buff, 1)) != 0)
         return read_status;
-    return wb[0];
-}
-
-uint8_t enable_lightsensor(){    
-    uint8_t wb[] = {TSL2591_COMMAND_BIT | TSL2591_REGISTER_ENABLE, 
-                    TSL2591_ENABLE_POWERON| TSL2591_ENABLE_AEN | TSL2591_ENABLE_AIEN | TSL2591_ENABLE_NPIEN};
-    return i2c_io(LIGHTSENSOR_ADDR, wb, 2, NULL, 0); // Returns 0 on success
-}
-
-uint8_t disable_lightsensor(){ 
-    uint8_t wb[] = {TSL2591_COMMAND_BIT | TSL2591_REGISTER_ENABLE, TSL2591_ENABLE_POWEROFF};
-    return i2c_io(LIGHTSENSOR_ADDR, wb, 2, NULL, 0); // Returns 0 on success
-}
-
-uint8_t configure_lightsensor(){    
-  _integration = TSL2591_INTEGRATIONTIME_600MS;
-  uint8_t gain = TSL2591_GAIN_MED;
-  uint8_t reg_addr = TSL2591_COMMAND_BIT | TSL2591_REGISTER_CONTROL;
-  uint8_t command = _integration | gain;
-  uint8_t wb[2] = {reg_addr, command};
-
-  return i2c_io(LIGHTSENSOR_ADDR, wb, 2, NULL, 0);
-}
-
-uint16_t get_luminosity(){
-    uint8_t d;
-    uint8_t wby[] = {TSL2591_COMMAND_BIT | TSL2591_REGISTER_CHAN0_LOW};
-    uint8_t wbx[] = {TSL2591_COMMAND_BIT | TSL2591_REGISTER_CHAN1_LOW};
-    uint16_t rbx[2], rby[2], bx, full, y;
-    uint32_t x;
     
+    if (buff[0] != 0x50)
+        return buff[0];
+
     enable_lightsensor();
-    for (d = 0; d <= _integration; d++) // wait for sensor to gather data
-        _delay_ms(100);
+    
+    buff[0] = (TSL2591_COMMAND_BIT | TSL2591_REGISTER_CONTROL);
+    buff[1] = (TSL2591_INTEGRATIONTIME_100MS | TSL2591_GAIN_MED);
+    i2c_io(LIGHTSENSOR_ADDR, buff, 2, NULL, 0);
 
-    if (!i2c_io(LIGHTSENSOR_ADDR, wby, 1, rby, 2)){
-        if (!i2c_io(LIGHTSENSOR_ADDR, wbx, 1, rbx, 2)){
-            y = (rby[1] << 8) | rby[0];
-            x = (rbx[1] << 8) | rbx[0];
-            disable_lightsensor();
-            // Check for overflow conditions first
-            if ((y == 0xFFFF) | (x == 0xFFFF)) {
-                // Signal an overflow
-                return 0;
-            }
-            x <<= 16;
-            x |= y;
-            return x;            
-        }
-    }
+    disable_lightsensor();
 
+    return 0;
+
+}
+
+// uint16_t get_luminosity() {
+//     uint16_t x = 0;
+    
+//     enable_lightsensor();
+    
+//     uint8_t d;
+//     for (d = 0; d <= 2; d++) { // wait for sensor to gather data
+//         _delay_ms(120);
+//     }
+
+//     buff[0] = (TSL2591_COMMAND_BIT | TSL2591_REGISTER_CHAN0_LOW);
+//     i2c_io(LIGHTSENSOR_ADDR, buff, 1, buff, 2);
+    
+//     x |= (buff[1] << 8) | (buff[0]);
+
+//     disable_lightsensor();
+//     // Check for overflow conditions first
+//     if (x == 0xFFFF) {
+//         // Signal an overflow
+//             return 0;
+//     }
+//     return x;            
+// }
+
+// uint32_t get_luminosity(){
+//     uint32_t x = 0;
+    
+//     enable_lightsensor();
+    
+//     uint8_t d;
+//     for (d = 0; d <= _integration; d++) { // wait for sensor to gather data
+//         _delay_ms(1);
+//     }
+
+//     buff[0] = (TSL2591_COMMAND_BIT | TSL2591_REGISTER_CHAN0_LOW);
+//     i2c_io(LIGHTSENSOR_ADDR, buff, 1, buff, 2);
+    
+//     x |= (buff[1] << 8) | (buff[0]);
+
+//     buff[0] = (TSL2591_COMMAND_BIT | TSL2591_REGISTER_CHAN1_LOW);
+//     i2c_io(LIGHTSENSOR_ADDR, buff, 1, buff, 2);
+
+//     x |= (buff[1] << 24) | (buff[0] << 16);
+
+//     disable_lightsensor();
+//     // Check for overflow conditions first
+//     if ((x & 0xFFFF0000) == 0xFFFF0000 | (x & 0xFFFF) == 0xFFFF) {
+//         // Signal an overflow
+//             return 0;
+//     }
+//     return x;            
+// }
+
+uint32_t get_luminosity(void) {
+  uint8_t x[2];
+  uint8_t y[2];
+  uint8_t buff1[] = {TSL2591_COMMAND_BIT | TSL2591_REGISTER_CHAN0_LOW};
+  uint8_t buff2[] = {TSL2591_COMMAND_BIT | TSL2591_REGISTER_CHAN1_LOW};
+  // Enable the device
+  enable_lightsensor();
+
+  // Wait x ms for ADC to complete
+  uint8_t d;
+  for (d = 0; d <= TSL2591_INTEGRATIONTIME_100MS; d++) {
+    _delay_ms(120);
+  }
+
+  // CHAN0 must be read before CHAN1
+  // See: https://forums.adafruit.com/viewtopic.php?f=19&t=124176
+    i2c_io(LIGHTSENSOR_ADDR, buff1, 1, x, 2);
+    i2c_io(LIGHTSENSOR_ADDR, buff2, 1, y, 2);
+    disable_lightsensor();
+
+    uint32_t final = ((uint32_t)(y[1]) << 24) | ((uint32_t)(y[0]) << 16) | ((uint32_t)(x[1]) << 8) | ((uint32_t)(x[0]));
+
+
+  return final;
 }

@@ -41,6 +41,10 @@ uint16_t get_humidity(){
     return _humidity;
 }
 
+uint16_t get_temperature(){
+    return _temperature;
+}
+
 uint64_t update_humidity(){
     int i, j;
     unsigned long marks[41] = {0};
@@ -49,6 +53,7 @@ uint64_t update_humidity(){
     uint64_t high_time[40] = {0};
     char dataBytes[5] = {0};
     _humidity = 0;
+    _temperature = 0;
 
     cli();
 
@@ -86,7 +91,7 @@ uint64_t update_humidity(){
     // If the duration of the received high signal is 70us, the bit is 1
     
     counter = 0;
-    for (i = 0; i < 8; i++)
+    for (i = 0; i < 32; i++)
     {
         // while (~PIND & (1 << PD3))
         //     _delay_us(1);
@@ -114,8 +119,18 @@ uint64_t update_humidity(){
         else
             return 0; // If value is outside of these boundaries, something didn't go right
         _humidity = _humidity | (val << j);
+        
+        if ((high_time[i+16] >= 0)&&(high_time[i+16] < 3))         
+            val = 0;
+        else if ((high_time[i+16] >= 3)&&(high_time[i+16] < 10))
+            val = 1;
+        else
+            return 0; // If value is outside of these boundaries, something didn't go right
+        _temperature = _temperature | (val << j);
+        
         j--;
     }
+    
 
     return 1;
 
@@ -129,25 +144,25 @@ uint64_t update_humidity(){
     // return 0;
 }
 
-_Bool checksum(char check, char *data, unsigned int datalen)
-{
-    char sum = 0;
-    int i;
-    for (i = 0; i < datalen; i++)
-    {
-        sum = sum + data[i];
-    }
-    if (sum == check)
-        return true;
+// _Bool checksum(char check, char *data, unsigned int datalen)
+// {
+//     char sum = 0;
+//     int i;
+//     for (i = 0; i < datalen; i++)
+//     {
+//         sum = sum + data[i];
+//     }
+//     if (sum == check)
+//         return true;
 
-    return false;
-}
+//     return false;
+// }
 
-uint8_t errorExit(int code)
-{
-    sei();
-    return code;
-}
+// uint8_t errorExit(int code)
+// {
+//     sei();
+//     return code;
+// }
 
 // _Bool waitForRHT(int pinState, unsigned int timeout)
 // {
@@ -164,36 +179,36 @@ uint8_t errorExit(int code)
 //     //     return true;
 // }
 
-unsigned long micros(){
-    unsigned long m;
-    uint8_t oldSREG = SREG, t;
+// unsigned long micros(){
+//     unsigned long m;
+//     uint8_t oldSREG = SREG, t;
      
-    m = timer0_overflow_count;
-    t = TCNT0;
+//     m = timer0_overflow_count;
+//     t = TCNT0;
  
-    // if ((TIFR0 & _BV(TOV0)) && (t < 255))
-    //     m++;
+//     // if ((TIFR0 & _BV(TOV0)) && (t < 255))
+//     //     m++;
  
-    // SREG = oldSREG;
+//     // SREG = oldSREG;
      
-    return ((m << 8) + t) * (64 / clockCyclesPerMicrosecond());
-}
+//     return ((m << 8) + t) * (64 / clockCyclesPerMicrosecond());
+// }
  
-ISR(TIMER0_OVF_vect)
-{
-    // copy these to local variables so they can be stored in registers
-    // (volatile variables must be read from memory on every access)
-    unsigned long m = timer0_millis;
-    unsigned char f = timer0_fract;
+// ISR(TIMER0_OVF_vect)
+// {
+//     // copy these to local variables so they can be stored in registers
+//     // (volatile variables must be read from memory on every access)
+//     unsigned long m = timer0_millis;
+//     unsigned char f = timer0_fract;
  
-    m += MILLIS_INC;
-    f += FRACT_INC;
-    if (f >= FRACT_MAX) {
-        f -= FRACT_MAX;
-        m += 1;
-    }
+//     m += MILLIS_INC;
+//     f += FRACT_INC;
+//     if (f >= FRACT_MAX) {
+//         f -= FRACT_MAX;
+//         m += 1;
+//     }
  
-    timer0_fract = f;
-    timer0_millis = m;
-    timer0_overflow_count++;
-}
+//     timer0_fract = f;
+//     timer0_millis = m;
+//     timer0_overflow_count++;
+// }

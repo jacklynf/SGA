@@ -1,9 +1,17 @@
 // Adapted from Adafruit GitHub library
 // https://github.com/adafruit/Adafruit_TSL2591_Library/blob/master/Adafruit_TSL2591.cpp#L467 
+#ifndef LIGHT_SENSOR_H
+#define LIGHT_SENSOR_H
 
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include <util/delay.h>
+#include <stddef.h>
+#include "i2c.h"
 
-#define TSL2591_COMMAND_BIT                                                    \
-  (0xA0) ///< 1010 0000: bits 7 and 5 for 'command normal'
+#define LIGHTSENSOR_ADDR (0x29 << 1)
+
+#define TSL2591_COMMAND_BIT (0xA0) ///< 1010 0000: bits 7 and 5 for 'command normal'
 
 #define TSL2591_ENABLE_POWEROFF (0x00) ///< Flag for ENABLE register to disable
 #define TSL2591_ENABLE_POWERON (0x01)  ///< Flag for ENABLE register to enable
@@ -45,12 +53,24 @@ typedef enum {
   TSL2591_GAIN_MAX = 0x30,  /// max gain (9876x)
 } tsl2591Gain_t;
 
-uint8_t configure_lightsensor();
-uint8_t enable_lightsensor();
+uint8_t read_status;
+uint8_t buff[2];
+
 uint8_t init_lightsensor();
-uint16_t get_luminosity();
-float calculate_lux(uint16_t, uint16_t);
+uint32_t get_luminosity();
 
-uint8_t _integration;
+static inline void enable_lightsensor(){    
+    buff[0] = (TSL2591_COMMAND_BIT | TSL2591_REGISTER_ENABLE);
+    buff[1] = (TSL2591_ENABLE_POWERON| TSL2591_ENABLE_AEN | TSL2591_ENABLE_AIEN | TSL2591_ENABLE_NPIEN); //0x93
+    i2c_io(LIGHTSENSOR_ADDR, buff, 2, NULL, 0); // Returns 0 on success
+}
 
-// #endif
+static inline void disable_lightsensor(){ 
+    buff[0] = (TSL2591_COMMAND_BIT | TSL2591_REGISTER_ENABLE);
+    buff[1] = (TSL2591_ENABLE_POWEROFF);
+    i2c_io(LIGHTSENSOR_ADDR, buff, 2, NULL, 0); // Returns 0 on success
+}
+
+
+
+#endif
