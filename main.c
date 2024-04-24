@@ -273,40 +273,40 @@ ISR(PCINT1_vect) //Interrupt vector for PORTC
     encoder_input = PINC & (ENCODERA|ENCODERB);    //Read inputs simultaneously
     encoder_A = encoder_input & ENCODERA;          //Isolate EncoderA input
     encoder_B = encoder_input & ENCODERB;          //Isolate EncoderB input
-    if (encoder_old_state == TROPICAL) {
+    if (encoder_old_state == 0) {
         if(encoder_A){
             //Clockwise Rotation
-            encoder_new_state = DESERT;
+            encoder_new_state = 1;
         }else if(encoder_B){
             //Counter-Clockwise Rotation
-            encoder_new_state = TEMPERATE;
+            encoder_new_state = 2;
         }
 	}
-	else if (encoder_old_state == DESERT) {
+	else if (encoder_old_state == 1) {
         if(encoder_B){
             //Clockwise Rotation
-            encoder_new_state = ALPINE;
+            encoder_new_state = 3;
         }else if(!encoder_A){
             //Counter-Clockwise Rotation
-            encoder_new_state = TROPICAL;
+            encoder_new_state = 0;
         }
 	}
-	else if (encoder_old_state == TEMPERATE) {
+	else if (encoder_old_state == 2) {
         if(!encoder_B){
             //Clockwise Rotation
-            encoder_new_state = TROPICAL;
+            encoder_new_state = 0;
         }else if(encoder_A){
             //Counter-Clockwise Rotation
-            encoder_new_state = ALPINE;
+            encoder_new_state = 3;
         }
 	}
 	else {   // old_state = ALPINE
         if(!encoder_A){
             //Clockwise Rotation
-            encoder_new_state = TEMPERATE;
+            encoder_new_state = 2;
         }else if(!encoder_B){
             //Counter-Clockwise Rotation
-            encoder_old_state = DESERT;
+            encoder_old_state = 1;
         }
 	}
 
