@@ -9,6 +9,8 @@
 #include <stddef.h>
 #include "i2c.h"
 
+#define TSL2591_LUX_DF (408)   ///< Lux cooefficient
+
 #define LIGHTSENSOR_ADDR (0x29 << 1)
 
 #define TSL2591_COMMAND_BIT (0xA0) ///< 1010 0000: bits 7 and 5 for 'command normal'
@@ -57,7 +59,7 @@ uint8_t read_status;
 uint8_t buff[2];
 
 uint8_t init_lightsensor();
-uint32_t get_luminosity();
+uint16_t get_luminosity();
 
 static inline void enable_lightsensor(){    
     buff[0] = (TSL2591_COMMAND_BIT | TSL2591_REGISTER_ENABLE);

@@ -78,7 +78,7 @@ uint8_t init_lightsensor() {
 //     return x;            
 // }
 
-uint32_t get_luminosity(void) {
+uint16_t get_luminosity(void) {
   uint8_t x[2];
   uint8_t y[2];
   uint8_t buff1[] = {TSL2591_COMMAND_BIT | TSL2591_REGISTER_CHAN0_LOW};
@@ -98,8 +98,16 @@ uint32_t get_luminosity(void) {
     i2c_io(LIGHTSENSOR_ADDR, buff2, 1, y, 2);
     disable_lightsensor();
 
-    uint32_t final = ((uint32_t)(y[1]) << 24) | ((uint32_t)(y[0]) << 16) | ((uint32_t)(x[1]) << 8) | ((uint32_t)(x[0]));
+    uint16_t ch0 = ((uint16_t)(x[1]) << 8) | ((uint16_t)(x[0]));
+    uint16_t ch1 = ((uint16_t)(y[1]) << 8) | ((uint16_t)(y[0]));
+    if ((ch0 == 0xFFFF) | (ch1 == 0xFFFF)) {
+      return -1;
+    }
 
+    int atime = 100;
+    int again = 25;
+    int cpl = (atime * again) / TSL2591_LUX_DF;
+    uint16_t lux = (ch0 - ch1) * (1 - (ch1 / ch0)) / cpl;
 
-  return final;
+  return lux;
 }

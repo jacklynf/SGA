@@ -138,7 +138,6 @@ int main(void) {
     init_reg();
     init_npk();
     init_humidity();
-    init_mux();
     init_soilmoisture();
     LCD_Initialize();
     setRotation(3);
@@ -164,20 +163,16 @@ int main(void) {
 
 
    // Begin i2c communication with light sensor
-    if ((dev_id = init_lightsensor()) == 0x50){
-        if (!enable_lightsensor()){
-            if (!configure_lightsensor()){
-                setCursor(55,50);
-                printString("All sensors");
-                setCursor(90,100);
-                printString("enabled.");
-            }
-        }
+    if (!init_lightsensor()){
+        setCursor(55,50);
+        printString("All sensors");
+        setCursor(90,100);
+        printString("enabled.");
     }
     // End light sensor configuration
     _delay_ms(2000); // Pause on sensor screen
     fillScreen(ILI9341_DARKGREEN); 
-    init_base_screen(encoder);
+    init_base_screen(LCD_state);
 
     uint16_t counter = 0;
     int water_lev = -1;
