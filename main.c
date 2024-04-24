@@ -49,7 +49,6 @@
 #include "light_sensor.h"
 #include "LCD.h"
 #include "LCD_GFX.h"
-#include "i2c_mux.h"
 #include "WaterLevel.h"
 
 void compute_needs();
@@ -177,7 +176,7 @@ int main(void) {
     // End light sensor configuration
     _delay_ms(2000); // Pause on sensor screen
     fillScreen(ILI9341_DARKGREEN); 
-    init_base_screen(encoder);
+    init_base_screen(encoder_old_state);
 
     uint16_t counter = 0;
     int water_lev = -1;
@@ -187,7 +186,7 @@ int main(void) {
       
         if (check_fert){
             check_fert = 0;
-            fert_lev = checkWaterLevel(TCA_CHANNEL_2);
+            fert_lev = checkWaterLevel(FERTILIZER_CHANNEL);
             ud_lcd_liquids(water_lev, NULL);
             if ((fert_lev < 50) && (fert_lev >= 25))
                 sendOutput(led_select1 = YELLOW1, led_select2, w_pump_on, f_pump_on, grow_light);
@@ -199,7 +198,7 @@ int main(void) {
 
         if (check_water){
             check_water = 0;
-            water_lev = checkWaterLevel(TCA_CHANNEL_0);
+            water_lev = checkWaterLevel(WATER_LEVEL_CHANNEL);
             ud_lcd_liquids(NULL, fert_lev);
             if ((water_lev < 50) && (water_lev >= 25))
                 sendOutput(led_select1 = YELLOW2, led_select2, w_pump_on, f_pump_on, grow_light);
