@@ -67,6 +67,7 @@ void compute_needs();
 #define BDIV (F_CPU / 100000 - 16) / 2 + 1    // Puts I2C rate just below 100kHz
 
 // Volatile variables for interrupts
+volatile uint8_t ud_encoder;
 
 // NPK variables
 volatile uint8_t rx_complete = false, check_npk = 0, fertilizer_complete = true; // NPK flags
@@ -220,7 +221,7 @@ int main(void) {
             water_light = user_input(encoder_new_state); // Water needs in upper 8 bits, light needs in lower 8 bits
             water_needs = (water_light >> 8), light_needs = water_light; // values defined in encoder ENUM
             compute_needs();
-            ud_lcd_encoder(encoder_new_state);
+            ud_lcd_encoder(ud_encoder);
         }
 
         if (check_moisture && check_humidity){ // Check if plant needs water
@@ -314,6 +315,7 @@ ISR(PCINT1_vect) //Interrupt vector for PORTC
 	if (encoder_new_state != encoder_old_state) {
 	    encoder_changed = 1;
 	    encoder_old_state = encoder_new_state;
+        ud_encoder = encoder_new_state;
 	}
     //End code for Rotary Encoder related Interrupt Handling
 } 
