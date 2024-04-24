@@ -137,7 +137,6 @@ int main(void) {
     init_reg();
     init_npk();
     init_humidity();
-    init_mux();
     init_soilmoisture();
     LCD_Initialize();
     setRotation(3);
@@ -147,7 +146,7 @@ int main(void) {
 
     _Bool grow_light = false;
     enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
-    led_select1 = GREEN1, led_select2 = GREEN2;
+    // led_select1 = GREEN1, led_select2 = GREEN2;
     sendOutput(led_select1, led_select2, w_pump_on, f_pump_on, grow_light);
    
     // Startup screen
@@ -163,20 +162,16 @@ int main(void) {
 
 
    // Begin i2c communication with light sensor
-    if ((dev_id = init_lightsensor()) == 0x50){
-        if (!enable_lightsensor()){
-            if (!configure_lightsensor()){
-                setCursor(55,50);
-                printString("All sensors");
-                setCursor(90,100);
-                printString("enabled.");
-            }
-        }
+    if (!init_lightsensor()){
+        setCursor(55,50);
+        printString("All sensors");
+        setCursor(90,100);
+        printString("enabled.");
     }
     // End light sensor configuration
     _delay_ms(2000); // Pause on sensor screen
     fillScreen(ILI9341_DARKGREEN); 
-    init_base_screen(encoder_old_state);
+    init_base_screen(LCD_state);
 
     uint16_t counter = 0;
     int water_lev = -1;
@@ -187,7 +182,7 @@ int main(void) {
         if (check_fert){
             check_fert = 0;
             fert_lev = checkWaterLevel(FERTILIZER_CHANNEL);
-            ud_lcd_liquids(water_lev, NULL);
+            ud_lcd_liquids(fert_lev, NULL);
             if ((fert_lev < 50) && (fert_lev >= 25))
                 sendOutput(led_select1 = YELLOW1, led_select2, w_pump_on, f_pump_on, grow_light);
             else if (fert_lev < 25)
@@ -199,13 +194,13 @@ int main(void) {
         if (check_water){
             check_water = 0;
             water_lev = checkWaterLevel(WATER_LEVEL_CHANNEL);
-            ud_lcd_liquids(NULL, fert_lev);
+            ud_lcd_liquids(NULL, water_lev);
             if ((water_lev < 50) && (water_lev >= 25))
-                sendOutput(led_select1 = YELLOW2, led_select2, w_pump_on, f_pump_on, grow_light);
+                sendOutput(led_select1, led_select2 = YELLOW2, w_pump_on, f_pump_on, grow_light);
             else if (water_lev < 25)
-                sendOutput(led_select1 = RED2, led_select2, w_pump_on, f_pump_on, grow_light);
+                sendOutput(led_select1, led_select2 = RED2, w_pump_on, f_pump_on, grow_light);
             else 
-                sendOutput(led_select1 = GREEN2, led_select2, w_pump_on, f_pump_on, grow_light);
+                sendOutput(led_select1, led_select2 = GREEN2, w_pump_on, f_pump_on, grow_light);
         }
 
         if (check_light){ // Check if grow light is needed

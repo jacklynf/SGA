@@ -214,5 +214,6 @@ void ud_lcd_humidity(uint16_t);
 void ud_lcd_npk(unsigned char, unsigned char, unsigned char);
 void ud_lcd_moisture(unsigned char);
 void ud_lcd_encoder(uint8_t);
+void ud_lcd_liquids(uint8_t water, uint8_t nutrients);
 
 #endif  //LCD_H
