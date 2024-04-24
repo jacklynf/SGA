@@ -68,6 +68,10 @@ void compute_needs();
 
 // Volatile variables for interrupts
 volatile uint8_t ud_encoder;
+volatile int8_t raw_encoder_count;
+volatile bool encoder_changed_flag;
+volatile uint8_t encoder_sensivity;
+volatile uint8_t LCD_state = 0;
 
 // NPK variables
 volatile uint8_t rx_complete = false, check_npk = 0, fertilizer_complete = true; // NPK flags
@@ -129,7 +133,7 @@ int main(void) {
     
     // Initialize i2c, registers, ports, and sensors    
     i2c_init(BDIV);
-    uint8_t encoder = init_encoder();
+    init_encoder();
     init_timer();
     init_reg();
     init_npk();
@@ -139,8 +143,6 @@ int main(void) {
     LCD_Initialize();
     setRotation(3);
     fillScreen(ILI9341_DARKGREEN);
-    // fillRect(250, 30, 30, 50, ILI9341_R  ED);
-    // drawLine(100, 100, 200, 200, ILI9341_ORANGE);
 
     // End initialization
 
@@ -181,7 +183,8 @@ int main(void) {
     int water_lev = -1;
     int fert_lev = -1;
     char buf[16];
-    while (1){        
+    while (1){  
+      
         if (check_fert){
             check_fert = 0;
             fert_lev = checkWaterLevel(TCA_CHANNEL_2);
@@ -216,12 +219,28 @@ int main(void) {
                 sendOutput(led_select1, led_select2, w_pump_on, f_pump_on, grow_light = false); // Turn grow light on if light is low
         }
 
-        if(encoder_changed) { // Set plant needs based on user input
-            encoder_changed = false;  
-            water_light = user_input(encoder_new_state); // Water needs in upper 8 bits, light needs in lower 8 bits
+        if(encoder_changed_flag) { // Set plant needs based on user input
+            if(abs(raw_encoder_count) >= encoder_sensivity){
+                if(raw_encoder_count < 0){
+                    if(LCD_state <= 0){
+                        LCD_state == 3;
+                    }else{
+                        LCD_state--;
+                    }
+                }else{
+                    if(LCD_state >= 3){
+                        LCD_state == 0;
+                    }else{
+                        LCD_state++;
+                    }
+                }
+                raw_encoder_count = 0;
+            }
+            encoder_changed_flag = false;  
+            water_light = user_input(LCD_state); // Water needs in upper 8 bits, light needs in lower 8 bits
             water_needs = (water_light >> 8), light_needs = water_light; // values defined in encoder ENUM
             compute_needs();
-            ud_lcd_encoder(ud_encoder);
+            ud_lcd_encoder(LCD_state);
         }
 
         if (check_moisture && check_humidity){ // Check if plant needs water
@@ -278,44 +297,51 @@ ISR(PCINT1_vect) //Interrupt vector for PORTC
         if(encoder_A){
             //Clockwise Rotation
             encoder_new_state = 1;
+            raw_encoder_count++;
         }else if(encoder_B){
             //Counter-Clockwise Rotation
             encoder_new_state = 2;
+            raw_encoder_count--;
         }
 	}
 	else if (encoder_old_state == 1) {
         if(encoder_B){
             //Clockwise Rotation
             encoder_new_state = 3;
+            raw_encoder_count++;
         }else if(!encoder_A){
             //Counter-Clockwise Rotation
             encoder_new_state = 0;
+            raw_encoder_count--;
         }
 	}
 	else if (encoder_old_state == 2) {
         if(!encoder_B){
             //Clockwise Rotation
             encoder_new_state = 0;
+            raw_encoder_count++;
         }else if(encoder_A){
             //Counter-Clockwise Rotation
             encoder_new_state = 3;
+            raw_encoder_count--;
         }
 	}
 	else {   // old_state = ALPINE
         if(!encoder_A){
             //Clockwise Rotation
             encoder_new_state = 2;
+            raw_encoder_count++;
         }else if(!encoder_B){
             //Counter-Clockwise Rotation
             encoder_old_state = 1;
+            raw_encoder_count--;
         }
 	}
 
     //If state has changed, change oldstate to newstate and set changed flag to report that the encoder was turned.
 	if (encoder_new_state != encoder_old_state) {
-	    encoder_changed = 1;
+	    encoder_changed_flag = 1;
 	    encoder_old_state = encoder_new_state;
-        ud_encoder = encoder_new_state;
 	}
     //End code for Rotary Encoder related Interrupt Handling
 } 
