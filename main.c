@@ -67,10 +67,9 @@ void compute_needs();
 
 // Volatile variables for interrupts
 volatile uint8_t ud_encoder;
-volatile int8_t raw_encoder_count;
+volatile int8_t raw_encoder_count = 0;
 volatile bool encoder_changed_flag;
-volatile uint8_t encoder_sensivity;
-volatile uint8_t LCD_state = 0;
+volatile uint8_t LCD_state;
 
 // NPK variables
 volatile uint8_t rx_complete = false, check_npk = 0, fertilizer_complete = true; // NPK flags
@@ -104,24 +103,28 @@ uint16_t lum, humidity = 0, water_light;
 uint8_t water_needs, light_needs, dev_id, moist_threshold, humidity_threshold, light_threshold;
 
 void compute_needs(){ // Determine watering & grow light needs based on user input
-    if (water_needs == HUMID){
-        moist_threshold = 200;
-        humidity_threshold = 25;
-    }
-    else if (water_needs == DRY){
-        moist_threshold = 100;
-        humidity_threshold = 10;
-    }
+    // if (water_needs == HUMID){
+    //     moist_threshold = 200;
+    //     humidity_threshold = 25;
+    // }
+    // else if (water_needs == DRY){
+    //     moist_threshold = 100;
+    //     humidity_threshold = 10;
+    // }
 
-    if (light_needs == HIGH){
-        light_threshold = 400;
-    }
-    else if (light_needs == MODERATE){
-        light_threshold = 200;
-    }
-    else if (light_needs == LOW){
-        light_threshold = 75;
-    }
+    // if (light_needs == HIGH){
+    //     light_threshold = 400;
+    // }
+    // else if (light_needs == MODERATE){
+    //     light_threshold = 200;
+    // }
+    // else if (light_needs == LOW){
+    //     light_threshold = 75;
+    // }
+    moist_threshold = 255;
+    humidity_threshold = 30;
+    light_threshold = 200;
+
 }
 
 
@@ -132,7 +135,7 @@ int main(void) {
     
     // Initialize i2c, registers, ports, and sensors    
     i2c_init(BDIV);
-    init_encoder();
+    LCD_state = init_encoder();
     init_timer();
     init_reg();
     init_npk();
@@ -174,6 +177,8 @@ int main(void) {
     init_base_screen(LCD_state);
 
     uint16_t counter = 0;
+    uint8_t screen_flag = 0;
+    uint8_t encoder_sensivity = 7;
     int water_lev = -1;
     int fert_lev = -1;
     char buf[16];
@@ -215,15 +220,16 @@ int main(void) {
 
         if(encoder_changed_flag) { // Set plant needs based on user input
             if(abs(raw_encoder_count) >= encoder_sensivity){
+                screen_flag = true;
                 if(raw_encoder_count < 0){
                     if(LCD_state <= 0){
-                        LCD_state == 3;
+                        LCD_state = 3;
                     }else{
                         LCD_state--;
                     }
                 }else{
                     if(LCD_state >= 3){
-                        LCD_state == 0;
+                        LCD_state = 0;
                     }else{
                         LCD_state++;
                     }
@@ -231,6 +237,10 @@ int main(void) {
                 raw_encoder_count = 0;
             }
             encoder_changed_flag = false;  
+        }
+
+        if (screen_flag){
+            screen_flag = false;
             water_light = user_input(LCD_state); // Water needs in upper 8 bits, light needs in lower 8 bits
             water_needs = (water_light >> 8), light_needs = water_light; // values defined in encoder ENUM
             compute_needs();
@@ -275,7 +285,8 @@ int main(void) {
             j = 0;                      // reset j to allow another data rx
             ud_lcd_npk(npk_buf[3], npk_buf[4],npk_buf[5]);
             sendOutput(led_select1, led_select2, w_pump_on, 
-                       f_pump_on = fertilizer_needed(npk_buf[3], npk_buf[4], npk_buf[5]), grow_light); // Turn fertilizer on if returned true
+                    //    f_pump_on = fertilizer_needed(npk_buf[3], npk_buf[4], npk_buf[5]), grow_light); // Turn fertilizer on if returned true
+                        f_pump_on = true, grow_light);
         }
     }
     return 0;   /* never reached */
