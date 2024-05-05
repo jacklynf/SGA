@@ -41,23 +41,15 @@ uint16_t get_humidity(){
     return _humidity;
 }
 
-uint16_t get_temperature(){
-    return _temperature;
-}
-
-uint64_t update_humidity(){
+uint8_t update_humidity(){
     int i, j;
-    unsigned long marks[41] = {0};
-    unsigned long stops[40] = {0};
-    unsigned int highTime, lowTime;
     uint64_t high_time[40] = {0};
-    char dataBytes[5] = {0};
     _humidity = 0;
-    _temperature = 0;
 
-    cli();
+    cli(); // Cannot interrupt start signal and reading
 
     _delay_us(1);
+    // Sensor start signal begin
     // Begin state: input HIGH
     DDRD &= ~(1 << PD3); // Set PD3 as input
     PORTD |= (1 << PD3); // Enable pullup
@@ -65,36 +57,27 @@ uint64_t update_humidity(){
     // Start signal: host sets data low, waits 500us, then pulls back up, wait 20-40us
     DDRD |= (1 << PD3); // Set PD3 as output
     PORTD &= ~(1 << PD3); // Send PD3 low
-    _delay_us(500); // Wait 500us minimum
+    _delay_us(500); // Wait 500us minimum per datasheet
     DDRD &= ~(1 << PD3); 
     PORTD |= (1 << PD3); 
     _delay_us(20);
-    // Sensor should pull data pin low 80us, then pull back up
-    // if (!waitForRHT(LOW, MAX_TIMEOUT))
-    //     return errorExit(1);
-    // if (!waitForRHT(HIGH, MAX_TIMEOUT))
-    //     return errorExit(2);
-    // while (~PIND & (1 << PD3))
-    //     _delay_us(1);
-    
-    _delay_us(80);
-    while (PIND & (1 << PD3))
+    // Sensor should pull data pin low 80us, then pull back up    
+    _delay_us(80); // Wait for sensor to hold low for 80us
+    while (PIND & (1 << PD3)) // 
         _delay_us(1);
+    // Sensor start signal end
 
-    // return 1;
-    // _delay_us(1);
 
-    // Sensor transmits 40 bytes (16 rh, 16 temp, 8 checksum)
-    // Each byte starts with a ~50us LOW then a HIGH pulse. The duration of the
-    // HIGH pulse determines the value of the bit.
-    // If the duration of the received high signal is between 26-28us, the bit is 0
-    // If the duration of the received high signal is 70us, the bit is 1
-    
+    /*
+        Sensor transmits 40 bytes (16 rh, 16 temp, 8 checksum)
+        Each byte starts with a ~50us LOW then a HIGH pulse. The duration of the
+        HIGH pulse determines the value of the bit.
+        If the duration of the received high signal is between 26-28us, the bit is 0
+        If the duration of the received high signal is 70us, the bit is 1
+    */    
     counter = 0;
     for (i = 0; i < 32; i++)
     {
-        // while (~PIND & (1 << PD3))
-        //     _delay_us(1);
         _delay_us(50);
         while (PIND & (1 << PD3)){
             _delay_us(1);
@@ -125,90 +108,11 @@ uint64_t update_humidity(){
         else if ((high_time[i+16] >= 3)&&(high_time[i+16] < 10))
             val = 1;
         else
-            return 0; // If value is outside of these boundaries, something didn't go right
-        _temperature = _temperature | (val << j);
-        
+            return 0; // If value is outside of these boundaries, something didn't go right        
         j--;
     }
     
 
     return 1;
-
-    // if (checksum(dataBytes[CHECKSUM], dataBytes, 4))
-    // {
-    //     // _humidity = ((uint16_t)dataBytes[HUMIDITY_H] << 8) | dataBytes[HUMIDITY_L];
-
-    //     // end of mod
-    //     return 1;
-    // }
-    // return 0;
 }
 
-// _Bool checksum(char check, char *data, unsigned int datalen)
-// {
-//     char sum = 0;
-//     int i;
-//     for (i = 0; i < datalen; i++)
-//     {
-//         sum = sum + data[i];
-//     }
-//     if (sum == check)
-//         return true;
-
-//     return false;
-// }
-
-// uint8_t errorExit(int code)
-// {
-//     sei();
-//     return code;
-// }
-
-// _Bool waitForRHT(int pinState, unsigned int timeout)
-// {
-    
-//     // while (((PIND & (1 << PD3)) == pinState) && (counter++ < timeout))
-//     //     _delay_us(1);
-
-//     // if (pinState  == LOW) // Reset counter before high signal
-//     //     counter = 0; 
-
-//     // if (counter >= timeout)
-//     //     return false;
-//     // else
-//     //     return true;
-// }
-
-// unsigned long micros(){
-//     unsigned long m;
-//     uint8_t oldSREG = SREG, t;
-     
-//     m = timer0_overflow_count;
-//     t = TCNT0;
- 
-//     // if ((TIFR0 & _BV(TOV0)) && (t < 255))
-//     //     m++;
- 
-//     // SREG = oldSREG;
-     
-//     return ((m << 8) + t) * (64 / clockCyclesPerMicrosecond());
-// }
- 
-// ISR(TIMER0_OVF_vect)
-// {
-//     // copy these to local variables so they can be stored in registers
-//     // (volatile variables must be read from memory on every access)
-//     unsigned long m = timer0_millis;
-//     unsigned char f = timer0_fract;
- 
-//     m += MILLIS_INC;
-//     f += FRACT_INC;
-//     if (f >= FRACT_MAX) {
-//         f -= FRACT_MAX;
-//         m += 1;
-//     }
- 
-//     timer0_fract = f;
-//     timer0_millis = m;
-//     timer0_overflow_count++;
-// }

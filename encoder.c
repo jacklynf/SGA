@@ -33,7 +33,7 @@ uint8_t init_encoder(){
     return encoder_new_state;
 }
 
-uint16_t user_input(uint8_t encoder_new_state){
+uint16_t user_input(uint8_t encoder_new_state){ 
     uint8_t water_needs, light_needs;
     uint16_t needs;
     switch(encoder_new_state){

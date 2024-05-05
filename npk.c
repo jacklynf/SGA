@@ -64,5 +64,5 @@ _Bool fertilizer_needed(unsigned char nitrogen, unsigned char phosphorus, unsign
     if (sum >= 2)
         fert_needed = true; // If 2 elements are below the threshold, fertilizer is needed
 
-    return fert_needed;
+    return !fert_needed;
 }
