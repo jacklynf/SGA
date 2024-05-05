@@ -1,37 +1,3 @@
-/*************************************************************
-*       at328-2.c - Demonstrate simple I/O functions of ATmega328P
-*
-*       This program will cause a 7-segment display to either count up in
-*       hexadecimal (0,1,2,...,E,F,0,1,...) or count down in decimal
-*       (9,8,...,1,0,9,8,..) depending on whether or not a switch is
-*       pressed.
-*
-*       Port C, bit 1 - input from switch (0 = pressed, 1 = not pressed)
-*               When the switch is not pressed, the 7-segment display
-*               counts up in hexadecimal. When the switch is pressed,
-*               the 7-segment display counts down in decimal.
-*       Port B, bits 0-1 and Port D, bits 2-6 - Outputs to data inputs of
-*               the 74LS374 register.
-*               Bit 6 -> segment A, 5->B, ... , 1->F, 0->G
-*               A low output bit will cause the LED segment to light up.
-*       Port C, bit 2 - Output to positive edge-triggered clock input
-*               of 74LS374 register.
-*
-* Revision History
-* Date     Author      Description
-* 01/03/05 M. Redekopp Initial Release for MC68HC908JL3
-* 09/05/05 A. Weber    Modified for JL8 processor
-* 01/13/06 A. Weber    Modified for CodeWarrior 5.0
-* 08/25/06 A. Weber    Modified for JL16 processor
-* 04/23/07 A. Weber    Split example 2 into 2a and 2b
-* 08/17/07 A. Weber    Incorporated changes to demo board
-* 04/22/08 A. Weber    Added "one" variable to make warning go away
-* 04/23/08 A. Weber    Adjusted wait_100ms for 9.8304MHz clock
-* 04/03/11 A. Weber    Adapted for ATmega168
-* 06/06/13 A. Weber    Cleaned it up a bit
-* 11/18/13 A. Weber    Renamed for ATmega328P
-*************************************************************/
-
 #include <avr/io.h>
 #include <util/delay.h>
 #include <stdbool.h>
@@ -148,7 +114,7 @@ int main(void) {
     int water_lev = -1, fert_lev = -1;
     char buf[16];
     enum REGOUT led_select1, led_select2; // Declaration w/o initialization leaves LEDs in previous position on restart
-    sendOutput(led_select1, led_select2, w_pump_on = true, f_pump_on = true, grow_light);
+    sendOutput(led_select1, led_select2, w_pump_on, f_pump_on, grow_light);
    
     // Startup screen
     setCursor(25,75);
@@ -277,7 +243,6 @@ int main(void) {
             ud_lcd_npk(npk_buf[3], npk_buf[4],npk_buf[5]);
             sendOutput(led_select1, led_select2, w_pump_on, 
                        f_pump_on = fertilizer_needed(npk_buf[3], npk_buf[4], npk_buf[5]), grow_light); // Turn fertilizer on if returned true
-                        // f_pump_on = false, grow_light);
         }
     }
     return 0;   /* never reached */
@@ -389,15 +354,6 @@ ISR (TIMER1_COMPA_vect) {
     if (w_pump_on){ // If water pump is on, this will turn it off after 2 seconds
         w_pump_on = false; 
         water_complete = true;
-    }
-
-    if (test_flag){
-        PORTC |= 1 << PC0;      // Set PC0 to a 1
-        test_flag = 0;
-    }
-    else{
-        PORTC &= ~(1 << PC0);
-        test_flag = 1;
     }
 
 }

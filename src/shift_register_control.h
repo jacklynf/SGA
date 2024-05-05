@@ -35,14 +35,3 @@ This function is called every time an I/O device needs a bit change.
 */
 void sendOutput(enum REGOUT, enum REGOUT, _Bool, _Bool, _Bool);
 void init_reg();
-
-
-/*
-The toggleOutput function takes in a desired output ex. (GREEN_LED_1),
-the desired state of that output (on/off)
-and the 16-bit outputs variable.
-It's sole functionality is to change the appropriate bit in the 'outputs' according to what is desired
-as described by the first two inputs.
-The purpose of incorporating this function is to make code readability easier.
-*/
-// void toggleOutput (_Bool state, uint16_t output, uint16_t* outputs);

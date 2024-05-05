@@ -7,27 +7,6 @@
 // Humidity sensor code adapted from SparkFun source code SparkFun_RHT03.cpp:
 // https://github.com/sparkfun/SparkFun_RHT03_Arduino_Library/blob/master/src/SparkFun_RHT03.cpp
 
-// micros() method adapted from Arduino with help from:
-// // https://garretlab.web.fc2.com/en/arduino/inside/hardware/arduino/avr/cores/arduino/wiring.c/micros.html
-
-// Begin variables for micros() function
-#define MICROSECONDS_PER_TIMER0_OVERFLOW (clockCyclesToMicroseconds(64 * 256))
-#define MILLIS_INC (MICROSECONDS_PER_TIMER0_OVERFLOW / 1000)
-#define FRACT_INC ((MICROSECONDS_PER_TIMER0_OVERFLOW % 1000) >> 3)
-#define FRACT_MAX (1000 >> 3)
-#define clockCyclesPerMicrosecond() ( F_CPU / 1000000L )
-#define clockCyclesToMicroseconds(a) ( (a) / clockCyclesPerMicrosecond() )
-#define microsecondsToClockCycles(a) ( (a) * clockCyclesPerMicrosecond() )
-
-#define MAX_TIMEOUT UINT_MAX
-#define LOW         ~(1 << PD3)
-#define HIGH        (1 << PD3)
- 
-volatile unsigned long timer0_overflow_count = 0;
-volatile unsigned long timer0_millis = 0;
-static unsigned char timer0_fract = 0;
-// End micros() function variables
-
 uint64_t counter = 0;
 
 void init_humidity(){ // Initialize pin as input with pullup
